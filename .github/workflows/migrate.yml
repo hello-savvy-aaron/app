@@ -1,0 +1,26 @@
+name: DB migrate
+
+# Applies new SQL files in supabase/migrations/ to the database whenever they
+# change on main. Set the repo secret SUPABASE_DB_URL to your Supabase
+# connection string (Dashboard -> Connect -> Session pooler URI, password
+# included).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+  workflow_dispatch: {}
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Apply migrations
+        run: supabase db push --db-url "$SUPABASE_DB_URL"
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
