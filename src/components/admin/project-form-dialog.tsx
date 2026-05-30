@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createProject, updateProject } from "@/app/admin/actions";
+import { createProject, updateProject } from "@/lib/project-actions";
 import type { Project } from "@/lib/types";
 
 type ClientOption = { id: string; label: string };

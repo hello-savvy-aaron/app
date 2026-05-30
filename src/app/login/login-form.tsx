@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Wordmark } from "@/components/wordmark";
 
 export function LoginForm() {
   const searchParams = useSearchParams();
@@ -56,7 +57,9 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle className="text-2xl">Hello Savvy</CardTitle>
+        <CardTitle>
+          <Wordmark className="text-3xl" />
+        </CardTitle>
         <CardDescription>
           Sign in to your workspace. We&apos;ll email you a magic link.
         </CardDescription>

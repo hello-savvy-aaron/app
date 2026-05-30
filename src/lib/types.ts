@@ -1,4 +1,4 @@
-export type Role = "admin" | "client";
+export type Role = "admin" | "user";
 
 export type ProjectStatus = "active" | "paused" | "done";
 export type TaskStatus = "todo" | "in_progress" | "done";
@@ -8,6 +8,13 @@ export type Profile = {
   email: string;
   full_name: string | null;
   role: Role;
+  client_id: string | null;
+  created_at: string;
+};
+
+export type Client = {
+  id: string;
+  name: string;
   created_at: string;
 };
 

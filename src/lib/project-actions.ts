@@ -30,7 +30,7 @@ export async function createProject(formData: FormData) {
   });
   if (error) throw new Error(error.message);
 
-  revalidatePath("/admin");
+  revalidatePath("/projects");
 }
 
 export async function updateProject(formData: FormData) {
@@ -51,8 +51,8 @@ export async function updateProject(formData: FormData) {
     .eq("id", id);
   if (error) throw new Error(error.message);
 
-  revalidatePath("/admin");
-  revalidatePath(`/admin/projects/${id}`);
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${id}`);
 }
 
 export async function deleteProject(formData: FormData) {
@@ -65,8 +65,8 @@ export async function deleteProject(formData: FormData) {
   const { error } = await supabase.from("projects").delete().eq("id", id);
   if (error) throw new Error(error.message);
 
-  revalidatePath("/admin");
-  redirect("/admin");
+  revalidatePath("/projects");
+  redirect("/projects");
 }
 
 export async function createTask(formData: FormData) {
@@ -85,7 +85,7 @@ export async function createTask(formData: FormData) {
   });
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/admin/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}`);
 }
 
 export async function setTaskStatus(formData: FormData) {
@@ -97,13 +97,10 @@ export async function setTaskStatus(formData: FormData) {
   const status = str(formData, "status") as TaskStatus;
   if (!id) return;
 
-  const { error } = await supabase
-    .from("tasks")
-    .update({ status })
-    .eq("id", id);
+  const { error } = await supabase.from("tasks").update({ status }).eq("id", id);
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/admin/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}`);
 }
 
 export async function deleteTask(formData: FormData) {
@@ -117,5 +114,5 @@ export async function deleteTask(formData: FormData) {
   const { error } = await supabase.from("tasks").delete().eq("id", id);
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/admin/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}`);
 }

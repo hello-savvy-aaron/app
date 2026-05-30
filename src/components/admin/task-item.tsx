@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { setTaskStatus, deleteTask } from "@/app/admin/actions";
+import { setTaskStatus, deleteTask } from "@/lib/project-actions";
 import type { Task } from "@/lib/types";
 
 export function TaskItem({ task }: { task: Task }) {

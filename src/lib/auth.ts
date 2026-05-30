@@ -26,9 +26,9 @@ export async function requireProfile(): Promise<Profile> {
   return profile;
 }
 
-/** Require an admin profile; redirect non-admins to the portal. */
+/** Require an admin profile; redirect non-admins to the projects view. */
 export async function requireAdmin(): Promise<Profile> {
   const profile = await requireProfile();
-  if (profile.role !== "admin") redirect("/portal");
+  if (profile.role !== "admin") redirect("/projects");
   return profile;
 }
