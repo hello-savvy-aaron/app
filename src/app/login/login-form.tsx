@@ -17,7 +17,7 @@ import { Wordmark } from "@/components/wordmark";
 
 export function LoginForm() {
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") ?? "/";
+  const next = searchParams.get("redirectTo") ?? "/projects";
 
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -26,7 +26,7 @@ export function LoginForm() {
 
   const callbackUrl = () => {
     const url = new URL("/auth/callback", window.location.origin);
-    url.searchParams.set("redirectTo", redirectTo);
+    url.searchParams.set("next", next);
     return url.toString();
   };
 
