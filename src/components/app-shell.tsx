@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  FileText,
   FolderKanban,
   LogOut,
   Menu,
@@ -33,6 +34,7 @@ type NavItem = {
 // once the Documents portal ships.
 const NAV: NavItem[] = [
   { href: "/projects", label: "Projects", icon: FolderKanban },
+  { href: "/documents", label: "Documents", icon: FileText },
 ];
 
 type SidebarState = "full" | "icons" | "hidden";
