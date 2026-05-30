@@ -25,9 +25,9 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
 
   const callbackUrl = () => {
-    const url = new URL("/auth/callback", window.location.origin);
-    url.searchParams.set("next", next);
-    return url.toString();
+    // No query params — Supabase allowlist matches exact paths, not query strings.
+    // After exchange the callback always redirects to /projects.
+    return new URL("/auth/callback", window.location.origin).toString();
   };
 
   async function sendMagicLink(e: React.FormEvent) {
