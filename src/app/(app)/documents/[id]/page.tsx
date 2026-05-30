@@ -149,7 +149,7 @@ export default async function DocumentViewerPage({
         <iframe
           srcDoc={htmlContent}
           title={d.title}
-          sandbox="allow-scripts allow-popups"
+          sandbox="allow-scripts allow-popups allow-same-origin allow-forms"
           className="h-[80vh] w-full rounded-xl bg-white ring-1 ring-foreground/10"
         />
       ) : d.kind === "pdf" && fileUrl ? (
