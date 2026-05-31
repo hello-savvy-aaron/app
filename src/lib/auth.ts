@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { IMPERSONATE_COOKIE } from "@/lib/constants";
 import type { Profile } from "@/lib/types";
 
 /** Returns the signed-in user's profile, or null if not signed in.
@@ -19,7 +21,34 @@ export async function getProfile(): Promise<Profile | null> {
     .eq("id", user.id)
     .single();
 
-  if (data) return data as Profile;
+  if (data) {
+    const realProfile = data as Profile;
+
+    // Impersonation: if this is an admin and the impersonation cookie is set,
+    // return the target user's profile so all data fetches use their RLS scope.
+    if (realProfile.role === "admin") {
+      const cookieStore = await cookies();
+      const targetId = cookieStore.get(IMPERSONATE_COOKIE)?.value;
+      if (targetId) {
+        const { data: target } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", targetId)
+          .single();
+        if (target && target.role !== "admin") {
+          return {
+            ...(target as Profile),
+            _impersonating: {
+              adminEmail: realProfile.email,
+              adminId: realProfile.id,
+            },
+          };
+        }
+      }
+    }
+
+    return realProfile;
+  }
 
   // Profile missing — upsert it now so the user isn't stuck in a loop.
   const isAdmin = user.email

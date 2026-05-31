@@ -10,6 +10,8 @@ export type Profile = {
   role: Role;
   client_id: string | null;
   created_at: string;
+  // Only set during admin impersonation — not a DB column.
+  _impersonating?: { adminEmail: string; adminId: string };
 };
 
 export type Client = {

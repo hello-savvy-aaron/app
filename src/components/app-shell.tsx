@@ -12,6 +12,7 @@ import {
   PanelLeftClose,
   Settings,
   User,
+  Users,
 } from "lucide-react";
 import { Wordmark } from "@/components/wordmark";
 import { cn } from "@/lib/utils";
@@ -30,11 +31,12 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string }>;
 };
 
-// Sidebar nav. Add { href: "/documents", label: "Documents", icon: FileText }
-// once the Documents portal ships.
-const NAV: NavItem[] = [
+const NAV_ALL: NavItem[] = [
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/documents", label: "Documents", icon: FileText },
+];
+const NAV_ADMIN: NavItem[] = [
+  { href: "/users", label: "Users", icon: Users },
 ];
 
 type SidebarState = "full" | "icons" | "hidden";
@@ -44,11 +46,15 @@ export function AppShell({
   email,
   subtitle,
   year,
+  isAdmin,
+  isImpersonating,
   children,
 }: {
   email: string;
   subtitle: string;
   year: number;
+  isAdmin: boolean;
+  isImpersonating: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -108,7 +114,7 @@ export function AppShell({
           )}
         </div>
         <nav className="flex flex-1 flex-col gap-1 px-2 text-sm">
-          {NAV.map((item) => {
+          {[...NAV_ALL, ...(isAdmin && !isImpersonating ? NAV_ADMIN : [])].map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(item.href + "/");
             const Icon = item.icon;
