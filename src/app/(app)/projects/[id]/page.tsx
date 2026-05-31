@@ -15,11 +15,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
+import { Eyebrow } from "@/components/eyebrow";
 import { ProjectFormDialog } from "@/components/admin/project-form-dialog";
 import { DocumentFormDialog } from "@/components/admin/document-form-dialog";
+import { IssueFormDialog } from "@/components/issue-form-dialog";
 import { TaskItem } from "@/components/admin/task-item";
 import { createTask, deleteProject } from "@/lib/project-actions";
-import type { Client, Document, Project, Task } from "@/lib/types";
+import type { Client, Document, Issue, Project, Task } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +52,13 @@ export default async function ProjectDetailPage({
     .eq("project_id", id)
     .order("created_at", { ascending: true });
   const tasks = (taskRows ?? []) as Task[];
+
+  const { data: issueRows } = await supabase
+    .from("issues")
+    .select("*")
+    .eq("project_id", id)
+    .order("created_at", { ascending: false });
+  const issues = (issueRows ?? []) as Issue[];
 
   // Documents for this project only. RLS already restricts to the user's scope.
   const { data: docRows } = await supabase
@@ -85,6 +94,7 @@ export default async function ProjectDetailPage({
     <div className="mx-auto max-w-3xl">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div className="space-y-2">
+          <Eyebrow>Project</Eyebrow>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-[-0.02em]">{p.name}</h1>
             <StatusBadge status={p.status} />
@@ -164,6 +174,75 @@ export default async function ProjectDetailPage({
                 <StatusBadge status={t.status} />
               </div>
             ))}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-10 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold tracking-[-0.01em]">Issues</h2>
+          {p.github_repo_url ? (
+            <IssueFormDialog
+              projectId={p.id}
+              trigger={<Button>New issue</Button>}
+            />
+          ) : (
+            isAdmin && (
+              <span className="text-xs text-ink-tertiary">
+                Link a GitHub repo in Edit to enable issues.
+              </span>
+            )
+          )}
+        </div>
+
+        {issues.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-foreground/15 p-8 text-center text-sm text-ink-secondary">
+            {p.github_repo_url
+              ? "No issues yet. File the first one and it’ll be created on GitHub."
+              : "No issues yet."}
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Issue</TableHead>
+                  <TableHead>State</TableHead>
+                  <TableHead className="text-right">Created</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {issues.map((i) => (
+                  <TableRow key={i.id}>
+                    <TableCell className="font-medium">
+                      {i.github_url ? (
+                        <a
+                          href={i.github_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="hover:underline"
+                        >
+                          {i.title}
+                          {i.github_number != null && (
+                            <span className="ml-1 text-ink-tertiary">
+                              #{i.github_number}
+                            </span>
+                          )}
+                        </a>
+                      ) : (
+                        i.title
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={i.state} />
+                    </TableCell>
+                    <TableCell className="text-right text-ink-secondary">
+                      {new Date(i.created_at).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </section>

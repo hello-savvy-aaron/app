@@ -15,6 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import { Wordmark } from "@/components/wordmark";
+import { Eyebrow } from "@/components/eyebrow";
 import { ProjectSwitcher } from "@/components/project-switcher";
 import { cn } from "@/lib/utils";
 import {
@@ -110,11 +111,11 @@ export function AppShell({
               <span className="text-display-magenta">S</span>
             </span>
           ) : (
-            <div className="min-w-0">
+            <div className="flex min-w-0 flex-col gap-1">
               <Wordmark className="text-lg" />
-              <p className="-mt-0.5 truncate text-[10px] font-medium tracking-[0.1em] text-ink-tertiary uppercase">
+              <Eyebrow className="px-2 py-0 text-[10px] tracking-[0.1em]">
                 {subtitle}
-              </p>
+              </Eyebrow>
             </div>
           )}
         </div>
@@ -148,7 +149,7 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-canvas/90 px-4 backdrop-blur">
+      <header className="app-header sticky top-0 z-30 flex h-14 items-center justify-between px-4">
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setMobileOpen(true)}
@@ -178,7 +179,7 @@ export function AppShell({
           <span className="md:hidden">
             <Wordmark className="text-base" />
           </span>
-          <div className="ml-1 border-l border-border pl-2">
+          <div className="ml-1 border-l border-brand-primary/15 pl-2">
             <ProjectSwitcher
               projects={projects}
               isAdmin={isAdmin && !isImpersonating}
@@ -189,7 +190,7 @@ export function AppShell({
 
         <DropdownMenu>
           <DropdownMenuTrigger
-            className="flex size-9 items-center justify-center rounded-full bg-brand-primary-soft text-brand-deep outline-none transition-colors hover:bg-[#e2daf7] focus-visible:ring-3 focus-visible:ring-ring/40"
+            className="flex size-9 items-center justify-center rounded-full bg-brand-primary-soft text-brand-deep ring-1 ring-inset ring-brand-primary/25 outline-none transition-colors hover:bg-[#e2daf7] hover:ring-brand-primary/40 focus-visible:ring-3 focus-visible:ring-ring/40"
             aria-label="Account menu"
           >
             <User className="size-5" />
@@ -221,7 +222,7 @@ export function AppShell({
       <div className="flex flex-1">
         <aside
           className={cn(
-            "hidden shrink-0 flex-col border-r border-sidebar-border bg-sidebar pb-4 transition-[width] md:flex",
+            "app-sidebar hidden shrink-0 flex-col border-r border-sidebar-border pb-4 transition-[width] md:flex",
             icons ? "w-16" : "w-60",
             state === "hidden" && "md:hidden",
           )}
@@ -235,7 +236,7 @@ export function AppShell({
               className="absolute inset-0 bg-ink-primary/30"
               onClick={() => setMobileOpen(false)}
             />
-            <aside className="absolute top-0 left-0 flex h-full w-60 flex-col border-r border-sidebar-border bg-sidebar pb-4 shadow-lg">
+            <aside className="app-sidebar absolute top-0 left-0 flex h-full w-60 flex-col border-r border-sidebar-border pb-4 shadow-lg">
               <SidebarInner collapsed={false} />
             </aside>
           </div>

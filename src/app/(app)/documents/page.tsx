@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
+import { Eyebrow } from "@/components/eyebrow";
 import {
   Table,
   TableBody,
@@ -41,6 +42,7 @@ export default async function DocumentsPage() {
     <div className="mx-auto max-w-5xl">
       <div className="mb-6 flex items-center justify-between">
         <div>
+          <Eyebrow className="mb-2">Library</Eyebrow>
           <h1 className="text-2xl font-bold tracking-[-0.02em]">
             Internal documents
           </h1>

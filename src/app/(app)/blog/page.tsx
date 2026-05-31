@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/auth";
+import { Eyebrow } from "@/components/eyebrow";
 import { BlogStudio } from "@/components/admin/blog-studio";
 import { listBlogPosts, isGithubConfigured } from "@/lib/blog-repo";
 
@@ -20,6 +21,7 @@ export default async function BlogPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-6">
+        <Eyebrow className="mb-2">Content</Eyebrow>
         <h1 className="text-2xl font-bold tracking-[-0.02em]">Blog Studio</h1>
         <p className="text-sm text-ink-secondary">
           Generate a Haka Construction post, review it, and commit it to the site repo.

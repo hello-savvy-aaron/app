@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Eyebrow } from "@/components/eyebrow";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
+      <Eyebrow className="mb-2">Account</Eyebrow>
       <h1 className="mb-6 text-2xl font-bold tracking-[-0.02em]">Settings</h1>
       <Card>
         <CardHeader>

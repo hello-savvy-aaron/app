@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
+import { parseGitHubRepo } from "@/lib/github";
 import type { ProjectStatus, TaskStatus } from "@/lib/types";
 
 function str(formData: FormData, key: string): string {
@@ -22,11 +23,19 @@ export async function createProject(formData: FormData) {
   const name = str(formData, "name");
   if (!name) return;
 
+  const githubRepoUrl = nullableStr(formData, "github_repo_url");
+  if (githubRepoUrl && !parseGitHubRepo(githubRepoUrl)) {
+    throw new Error(
+      "Enter a valid GitHub repository URL, e.g. https://github.com/owner/repo.",
+    );
+  }
+
   const { error } = await supabase.from("projects").insert({
     name,
     description: nullableStr(formData, "description"),
     status: (str(formData, "status") || "active") as ProjectStatus,
     client_id: nullableStr(formData, "client_id"),
+    github_repo_url: githubRepoUrl,
   });
   if (error) throw new Error(error.message);
 
@@ -41,6 +50,13 @@ export async function updateProject(formData: FormData) {
   const id = str(formData, "id");
   if (!id) return;
 
+  const githubRepoUrl = nullableStr(formData, "github_repo_url");
+  if (githubRepoUrl && !parseGitHubRepo(githubRepoUrl)) {
+    throw new Error(
+      "Enter a valid GitHub repository URL, e.g. https://github.com/owner/repo.",
+    );
+  }
+
   const { error } = await supabase
     .from("projects")
     .update({
@@ -48,6 +64,7 @@ export async function updateProject(formData: FormData) {
       description: nullableStr(formData, "description"),
       status: str(formData, "status") as ProjectStatus,
       client_id: nullableStr(formData, "client_id"),
+      github_repo_url: githubRepoUrl,
     })
     .eq("id", id);
   if (error) throw new Error(error.message);

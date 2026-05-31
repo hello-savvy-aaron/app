@@ -56,7 +56,13 @@ export async function createIssue(formData: FormData) {
     state: "open",
     created_by: user?.id ?? null,
   });
-  if (error) throw new Error(error.message);
+  // The GitHub issue already exists at this point; surface its URL so the user
+  // doesn't retry and create a duplicate if only the local mirror failed.
+  if (error) {
+    throw new Error(
+      `Issue created on GitHub (${issue.htmlUrl}), but saving it here failed: ${error.message}`,
+    );
+  }
 
   revalidatePath(`/projects/${projectId}`);
 }

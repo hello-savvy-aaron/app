@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { startImpersonation } from "@/lib/impersonation-actions";
 import { Button } from "@/components/ui/button";
+import { Eyebrow } from "@/components/eyebrow";
 import {
   Table,
   TableBody,
@@ -33,6 +34,7 @@ export default async function UsersPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-6">
+        <Eyebrow className="mb-2">People</Eyebrow>
         <h1 className="text-2xl font-bold tracking-[-0.02em]">Users</h1>
         <p className="text-sm text-ink-secondary">
           {users.length} user{users.length === 1 ? "" : "s"} ·{" "}
