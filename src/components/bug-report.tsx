@@ -10,11 +10,24 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { createIssue } from "@/lib/issue-actions";
+import { ACTIVE_PROJECT_COOKIE } from "@/lib/constants";
+
+/** Read the live active-project id from the hs-project cookie. The proxy updates
+ *  it on every /projects/[id] visit; the server-passed prop can lag behind it
+ *  after client-side navigation (the app layout doesn't re-render), so the
+ *  cookie is the source of truth at the moment the user files an issue. */
+function readActiveProject(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(
+    new RegExp(`(?:^|;\\s*)${ACTIVE_PROJECT_COOKIE}=([^;]+)`),
+  );
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 // Header "report an issue" widget. A single description box → a GitHub issue on
 // the active project's repo, mirrored into the issues table (reuses createIssue).
-// Issues are project-scoped; activeProjectId is the layout-resolved selection
-// (the hs-project cookie), so it works on any page once a project is chosen.
+// Issues are project-scoped; the active project is read from the hs-project
+// cookie so it tracks the current project on any page.
 export function BugReport({
   activeProjectId,
 }: {
@@ -25,8 +38,9 @@ export function BugReport({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
-
-  const activeId = activeProjectId;
+  // Seeded from the prop for first paint, then refreshed from the cookie each
+  // time the popover opens (and re-read at submit) so it never goes stale.
+  const [activeId, setActiveId] = useState<string | null>(activeProjectId);
 
   function reset() {
     setText("");
@@ -37,7 +51,9 @@ export function BugReport({
 
   async function submit() {
     const description = text.trim();
-    if (!description || !activeId || pending) return;
+    // Re-read at submit time so the issue always lands on the current project.
+    const projectId = readActiveProject() ?? activeProjectId;
+    if (!description || !projectId || pending) return;
     setPending(true);
     setError(null);
     // One box → a concise title (first line) plus the full text as the body.
@@ -45,7 +61,7 @@ export function BugReport({
     const title =
       firstLine.length > 120 ? firstLine.slice(0, 119) + "…" : firstLine;
     const fd = new FormData();
-    fd.set("project_id", activeId);
+    fd.set("project_id", projectId);
     fd.set("title", title);
     fd.set("body", description);
     try {
@@ -64,7 +80,8 @@ export function BugReport({
       open={open}
       onOpenChange={(o) => {
         setOpen(o);
-        if (!o) reset();
+        if (o) setActiveId(readActiveProject() ?? activeProjectId);
+        else reset();
       }}
     >
       <PopoverTrigger

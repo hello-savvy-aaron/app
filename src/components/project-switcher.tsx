@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Check, ChevronsUpDown, FolderKanban, Plus } from "lucide-react";
@@ -12,9 +12,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ProjectFormDialog } from "@/components/admin/project-form-dialog";
+import { ACTIVE_PROJECT_COOKIE } from "@/lib/constants";
 
 type ProjectOption = { id: string; name: string };
 type ClientOption = { id: string; label: string };
+
+// The active project lives in the hs-project cookie. We read/write it on the
+// client because the (app) layout is shared and doesn't re-render on soft
+// navigation, so the server-passed activeProjectId prop goes stale as you move
+// between pages.
+function readActiveProject(): string | null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(
+    new RegExp(`(?:^|;\\s*)${ACTIVE_PROJECT_COOKIE}=([^;]+)`),
+  );
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+function writeActiveProject(id: string) {
+  document.cookie = `${ACTIVE_PROJECT_COOKIE}=${encodeURIComponent(id)}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+}
 
 export function ProjectSwitcher({
   projects,
@@ -29,10 +46,15 @@ export function ProjectSwitcher({
 }) {
   const pathname = usePathname();
   const [newOpen, setNewOpen] = useState(false);
-  // On a project page the URL wins; elsewhere fall back to the persisted
-  // active project (cookie) so the selection survives navigating to /blog etc.
-  const match = pathname.match(/^\/projects\/([^/]+)/);
-  const activeId = match?.[1] ?? activeProjectId;
+  // On a project page the URL wins; elsewhere use the cookie, re-read on every
+  // navigation (the layout prop is stale after soft nav). Seed from the prop so
+  // SSR and the first client paint agree (no hydration mismatch).
+  const [cookieId, setCookieId] = useState<string | null>(activeProjectId);
+  useEffect(() => {
+    setCookieId(readActiveProject());
+  }, [pathname]);
+  const urlId = pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? null;
+  const activeId = urlId ?? cookieId;
   const active = projects.find((p) => p.id === activeId);
 
   // Non-admins with no projects: nothing to switch between.
@@ -63,7 +85,11 @@ export function ProjectSwitcher({
         ) : (
           projects.map((p) => (
             <DropdownMenuItem key={p.id} asChild>
-              <Link href={`/projects/${p.id}`} className="justify-between">
+              <Link
+                href={`/projects/${p.id}`}
+                onClick={() => writeActiveProject(p.id)}
+                className="justify-between"
+              >
                 <span className="truncate">{p.name}</span>
                 {p.id === activeId && <Check className="size-4 shrink-0" />}
               </Link>

@@ -14,11 +14,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DocumentFormDialog } from "@/components/admin/document-form-dialog";
-import type { Document, Project } from "@/lib/types";
+import type { Document } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const KIND_LABEL: Record<string, string> = { pdf: "PDF", html: "HTML", link: "Link" };
+
+type ScopedProject = { id: string; name: string; client_id: string | null };
 
 export default async function DocumentsPage() {
   await requireAdmin();
@@ -29,25 +31,42 @@ export default async function DocumentsPage() {
   const cookieStore = await cookies();
   const activeProjectId = cookieStore.get(ACTIVE_PROJECT_COOKIE)?.value ?? null;
 
-  // Resolve it (RLS-scoped — admins see every project). A stale/invalid cookie
-  // resolves to null, which falls through to the "pick a project" prompt.
-  let project: Pick<Project, "id" | "name"> | null = null;
+  let project: ScopedProject | null = null;
   if (activeProjectId) {
     const { data } = await supabase
       .from("projects")
-      .select("id,name")
+      .select("id,name,client_id")
       .eq("id", activeProjectId)
-      .single();
-    project = (data as Pick<Project, "id" | "name"> | null) ?? null;
+      .maybeSingle();
+    project = (data as ScopedProject | null) ?? null;
   }
+
+  // Nothing selected (or a stale cookie) → fall back to the internal, client-less
+  // project (in prod that's "Hello Savvy"). Internal documents are keyed to that
+  // project, so it's the natural home when no client project is in context.
+  if (!project) {
+    const { data } = await supabase
+      .from("projects")
+      .select("id,name,client_id")
+      .is("client_id", null)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    project = (data as ScopedProject | null) ?? null;
+  }
+
+  const isInternal = project?.client_id === null;
 
   const Header = (
     <div className="mb-6 flex items-center justify-between">
       <div>
-        <Eyebrow className="mb-2">Library</Eyebrow>
+        <Eyebrow className="mb-2">{isInternal ? "Internal" : "Library"}</Eyebrow>
         <h1 className="text-2xl font-bold tracking-[-0.02em]">Documents</h1>
         <p className="text-sm text-ink-secondary">
-          {project ? project.name : "No project selected"}
+          {project ? project.name : "No project"}
+          {isInternal && (
+            <span className="text-ink-tertiary"> · Hello Savvy only</span>
+          )}
         </p>
       </div>
       {project && (
@@ -60,12 +79,14 @@ export default async function DocumentsPage() {
     </div>
   );
 
+  // No project at all — not even an internal one exists yet.
   if (!project) {
     return (
       <div className="mx-auto max-w-5xl">
         {Header}
         <div className="rounded-xl border border-dashed border-foreground/15 p-10 text-center text-sm text-ink-secondary">
-          Pick a project from the switcher in the header to see its documents.
+          Create the internal “Hello Savvy” project (a project with no client) to
+          hold internal documents, or pick a project from the switcher.
         </div>
       </div>
     );
