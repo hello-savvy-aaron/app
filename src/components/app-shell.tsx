@@ -15,6 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import { Monogram } from "@/components/monogram";
+import { Wordmark } from "@/components/wordmark";
 import { Eyebrow } from "@/components/eyebrow";
 import { ProjectSwitcher } from "@/components/project-switcher";
 import { BugReport } from "@/components/bug-report";
@@ -178,9 +179,9 @@ export function AppShell({
           <Link
             href="/"
             aria-label="HelloSavvy home"
-            className="shrink-0 rounded-[10px] outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+            className="shrink-0 rounded-md px-0.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
           >
-            <Monogram />
+            <Wordmark className="text-base sm:text-lg" />
           </Link>
           <div className="ml-1 border-l border-brand-primary/15 pl-2">
             <ProjectSwitcher
