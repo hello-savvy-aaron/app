@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Bot,
   CircleDot,
   FileText,
   LogOut,
@@ -43,6 +44,7 @@ const NAV_ADMIN: NavItem[] = [
   { href: "/issues", label: "Issues", icon: CircleDot },
   { href: "/users", label: "Users", icon: Users },
   { href: "/blog", label: "Blog Studio", icon: Newspaper },
+  { href: "/agents", label: "Agents", icon: Bot },
 ];
 
 type SidebarState = "full" | "icons";
