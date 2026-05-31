@@ -29,19 +29,15 @@ export function DocumentFormDialog({
   projects,
   trigger,
   lockedProject,
-  defaultScope = "project",
 }: {
   projects: ProjectOption[];
   trigger: React.ReactNode;
-  /** When set, the dialog is opened from a project page: scope is forced to
-   *  "project" and pinned to this project (no scope/project pickers shown). */
+  /** When set, the dialog is opened from a project page: the document is pinned
+   *  to this project and the project picker is hidden. */
   lockedProject?: ProjectOption;
-  /** Initial visibility when not locked to a project. */
-  defaultScope?: "internal" | "project";
 }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<"pdf" | "html" | "link">("pdf");
-  const [scope, setScope] = useState<"internal" | "project">(defaultScope);
   const [error, setError] = useState<string | null>(null);
 
   async function action(formData: FormData) {
@@ -62,7 +58,9 @@ export function DocumentFormDialog({
           <DialogHeader>
             <DialogTitle>Add document</DialogTitle>
             <DialogDescription>
-              Upload a file or link, and choose who can see it.
+              {lockedProject
+                ? `Add a document to ${lockedProject.label}.`
+                : "Upload a file or link and choose its project."}
             </DialogDescription>
           </DialogHeader>
 
@@ -81,9 +79,7 @@ export function DocumentFormDialog({
               />
             </div>
 
-            <div
-              className={lockedProject ? "space-y-2" : "grid grid-cols-2 gap-4"}
-            >
+            <div className={lockedProject ? "space-y-2" : "grid grid-cols-2 gap-4"}>
               <div className="space-y-2">
                 <Label>Type</Label>
                 <Select name="kind" value={kind} onValueChange={(v) => setKind(v as typeof kind)}>
@@ -99,30 +95,8 @@ export function DocumentFormDialog({
               </div>
               {!lockedProject && (
                 <div className="space-y-2">
-                  <Label>Visibility</Label>
-                  <Select name="scope" value={scope} onValueChange={(v) => setScope(v as typeof scope)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="project">Project (client)</SelectItem>
-                      <SelectItem value="internal">Internal (Hello Savvy)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-
-            {lockedProject ? (
-              <>
-                <input type="hidden" name="scope" value="project" />
-                <input type="hidden" name="project_id" value={lockedProject.id} />
-              </>
-            ) : (
-              scope === "project" && (
-                <div className="space-y-2">
                   <Label>Project</Label>
-                  <Select name="project_id">
+                  <Select name="project_id" required>
                     <SelectTrigger>
                       <SelectValue placeholder="Choose a project" />
                     </SelectTrigger>
@@ -135,7 +109,11 @@ export function DocumentFormDialog({
                     </SelectContent>
                   </Select>
                 </div>
-              )
+              )}
+            </div>
+
+            {lockedProject && (
+              <input type="hidden" name="project_id" value={lockedProject.id} />
             )}
 
             {kind === "link" ? (
@@ -160,12 +138,10 @@ export function DocumentFormDialog({
               </div>
             )}
 
-            {scope === "project" && (
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="requires_signoff" className="size-4" />
-                Requires the client to sign off
-              </label>
-            )}
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="requires_signoff" className="size-4" />
+              Requires the client to sign off
+            </label>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>

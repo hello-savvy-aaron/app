@@ -18,17 +18,21 @@ type ClientOption = { id: string; label: string };
 
 export function ProjectSwitcher({
   projects,
+  activeProjectId,
   isAdmin,
   clientOptions,
 }: {
   projects: ProjectOption[];
+  activeProjectId: string | null;
   isAdmin: boolean;
   clientOptions: ClientOption[];
 }) {
   const pathname = usePathname();
   const [newOpen, setNewOpen] = useState(false);
+  // On a project page the URL wins; elsewhere fall back to the persisted
+  // active project (cookie) so the selection survives navigating to /blog etc.
   const match = pathname.match(/^\/projects\/([^/]+)/);
-  const activeId = match?.[1] ?? null;
+  const activeId = match?.[1] ?? activeProjectId;
   const active = projects.find((p) => p.id === activeId);
 
   // Non-admins with no projects: nothing to switch between.

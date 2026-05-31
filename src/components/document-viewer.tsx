@@ -89,7 +89,7 @@ export async function DocumentViewer({
           )}
           {isAdmin && (
             <p className="text-xs text-ink-tertiary">
-              {d.scope === "internal" ? "Internal" : `Project: ${projectLabel ?? "—"}`}
+              Project: {projectLabel ?? "—"}
             </p>
           )}
         </div>

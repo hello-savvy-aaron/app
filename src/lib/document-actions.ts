@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, requireProfile } from "@/lib/auth";
-import type { DocumentKind, DocumentScope } from "@/lib/types";
+import type { DocumentKind } from "@/lib/types";
 
 function str(fd: FormData, k: string): string {
   return (fd.get(k) as string | null)?.trim() ?? "";
@@ -20,13 +20,12 @@ export async function createDocument(formData: FormData) {
 
   const title = str(formData, "title");
   const kind = str(formData, "kind") as DocumentKind;
-  const scope = str(formData, "scope") as DocumentScope;
-  if (!title || !kind || !scope) return;
+  if (!title || !kind) return;
 
-  const projectId = scope === "project" ? nullableStr(formData, "project_id") : null;
-  if (scope === "project" && !projectId) {
-    throw new Error("Pick a project for a project document.");
-  }
+  // Every document belongs to a project (visibility follows the project's
+  // client; a client-less project keeps the doc admin-only).
+  const projectId = nullableStr(formData, "project_id");
+  if (!projectId) throw new Error("Pick a project for this document.");
 
   let storagePath: string | null = null;
   let externalUrl: string | null = null;
@@ -38,7 +37,7 @@ export async function createDocument(formData: FormData) {
     const file = formData.get("file") as File | null;
     if (!file || file.size === 0) throw new Error("A file is required.");
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    storagePath = `${scope}/${crypto.randomUUID()}-${safeName}`;
+    storagePath = `${projectId}/${crypto.randomUUID()}-${safeName}`;
     const { error: upErr } = await supabase.storage
       .from("documents")
       .upload(storagePath, file, {
@@ -53,7 +52,6 @@ export async function createDocument(formData: FormData) {
     title,
     description: nullableStr(formData, "description"),
     kind,
-    scope,
     project_id: projectId,
     storage_path: storagePath,
     external_url: externalUrl,
@@ -62,7 +60,7 @@ export async function createDocument(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/documents");
-  if (projectId) revalidatePath(`/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}`);
 }
 
 export async function deleteDocument(formData: FormData) {

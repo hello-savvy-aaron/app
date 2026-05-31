@@ -1,7 +1,9 @@
+import { cookies } from "next/headers";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/app-shell";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
+import { ACTIVE_PROJECT_COOKIE } from "@/lib/constants";
 
 export default async function AppLayout({
   children,
@@ -28,13 +30,36 @@ export default async function AppLayout({
     if (data?.name) subtitle = data.name;
   }
 
-  // Projects for the header switcher — RLS scopes these per role (admins see
-  // all, users see only their client's).
-  const { data: projectRows } = await supabase
-    .from("projects")
-    .select("id,name")
-    .order("name", { ascending: true });
-  const projects = (projectRows ?? []) as { id: string; name: string }[];
+  // Projects for the header switcher. Real admins (not impersonating) manage
+  // every project, including client-less "internal" ones (e.g. Hello Savvy).
+  // Clients — and admins viewing-as a client — only get their own client's
+  // projects, so internal projects never appear for them. Impersonation runs
+  // RLS as the admin, so we scope by the effective client_id explicitly rather
+  // than relying on RLS alone.
+  const seesAllProjects = isRealAdmin && !profile._impersonating;
+  let projects: { id: string; name: string }[] = [];
+  if (seesAllProjects) {
+    const { data } = await supabase
+      .from("projects")
+      .select("id,name")
+      .order("name", { ascending: true });
+    projects = (data ?? []) as { id: string; name: string }[];
+  } else if (profile.client_id) {
+    const { data } = await supabase
+      .from("projects")
+      .select("id,name")
+      .eq("client_id", profile.client_id)
+      .order("name", { ascending: true });
+    projects = (data ?? []) as { id: string; name: string }[];
+  }
+
+  // Active project from the cookie the proxy set on the last /projects/[id]
+  // visit — validated against the (RLS-scoped) list so a stale id can't leak.
+  const cookieStore = await cookies();
+  const cookieProjectId = cookieStore.get(ACTIVE_PROJECT_COOKIE)?.value ?? null;
+  const activeProjectId = projects.some((p) => p.id === cookieProjectId)
+    ? cookieProjectId
+    : null;
 
   // Admins need client options for the switcher's "New project" dialog.
   let clientOptions: { id: string; label: string }[] = [];
@@ -62,6 +87,7 @@ export default async function AppLayout({
         isAdmin={isRealAdmin}
         isImpersonating={Boolean(profile._impersonating)}
         projects={projects}
+        activeProjectId={activeProjectId}
         clientOptions={clientOptions}
       >
         {children}

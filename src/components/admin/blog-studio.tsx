@@ -41,7 +41,11 @@ const mdComponents = {
   ),
 };
 
-export function BlogStudio() {
+export function BlogStudio({
+  project,
+}: {
+  project: { id: string; name: string } | null;
+}) {
   // Generation inputs.
   const [topic, setTopic] = useState("");
   const [keywords, setKeywords] = useState("");
@@ -49,6 +53,7 @@ export function BlogStudio() {
   const [wordCount, setWordCount] = useState(700);
 
   // Editable draft (populated after generation).
+  const [postId, setPostId] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -60,14 +65,23 @@ export function BlogStudio() {
   const [busy, setBusy] = useState(false);
 
   async function generate() {
+    if (!project) return;
     setBusy(true);
     setStatus(null);
     try {
-      const res = await generateBlogDraft({ topic, keywords, tags, wordCount });
+      const res = await generateBlogDraft({
+        projectId: project.id,
+        postId: postId ?? undefined,
+        topic,
+        keywords,
+        tags,
+        wordCount,
+      });
       if (!res.ok) {
         setStatus({ type: "error", text: res.error });
         return;
       }
+      setPostId(res.data.id);
       setTitle(res.data.title);
       setSlug(res.data.slug);
       setDescription(res.data.description);
@@ -82,11 +96,19 @@ export function BlogStudio() {
   }
 
   async function publish() {
-    if (!hasDraft) return;
+    if (!hasDraft || !project || !postId) return;
     setBusy(true);
     setStatus(null);
     try {
-      const res = await publishBlogPost({ slug, title, description, tags, markdown });
+      const res = await publishBlogPost({
+        postId,
+        projectId: project.id,
+        slug,
+        title,
+        description,
+        tags,
+        markdown,
+      });
       if (!res.ok) {
         setStatus({ type: "error", text: res.error });
         return;
@@ -103,6 +125,17 @@ export function BlogStudio() {
     <div className="grid gap-8 md:grid-cols-2">
       {/* Controls + metadata */}
       <section className="space-y-4">
+        {/* Every blog is tied to a project — generation/commit are gated on it. */}
+        {project ? (
+          <p className="text-sm text-ink-secondary">
+            Writing for <span className="font-medium text-ink-primary">{project.name}</span>.
+          </p>
+        ) : (
+          <div className="rounded-lg bg-brand-primary-soft p-3 text-sm text-brand-deep">
+            Select a project in the switcher above to generate or save a blog.
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="topic">Topic / brief</Label>
           <Textarea
@@ -149,10 +182,14 @@ export function BlogStudio() {
         </div>
 
         <div className="flex gap-3">
-          <Button onClick={generate} disabled={busy || !topic.trim()}>
+          <Button onClick={generate} disabled={busy || !project || !topic.trim()}>
             {busy ? "Working…" : hasDraft ? "Regenerate" : "Generate draft"}
           </Button>
-          <Button variant="secondary" onClick={publish} disabled={busy || !hasDraft}>
+          <Button
+            variant="secondary"
+            onClick={publish}
+            disabled={busy || !project || !hasDraft}
+          >
             Commit to GitHub
           </Button>
         </div>

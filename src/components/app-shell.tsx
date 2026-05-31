@@ -17,6 +17,7 @@ import {
 import { Monogram } from "@/components/monogram";
 import { Eyebrow } from "@/components/eyebrow";
 import { ProjectSwitcher } from "@/components/project-switcher";
+import { BugReport } from "@/components/bug-report";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -51,6 +52,7 @@ export function AppShell({
   isAdmin,
   isImpersonating,
   projects,
+  activeProjectId,
   clientOptions,
   children,
 }: {
@@ -60,6 +62,7 @@ export function AppShell({
   isAdmin: boolean;
   isImpersonating: boolean;
   projects: { id: string; name: string }[];
+  activeProjectId: string | null;
   clientOptions: { id: string; label: string }[];
   children: React.ReactNode;
 }) {
@@ -182,41 +185,46 @@ export function AppShell({
           <div className="ml-1 border-l border-brand-primary/15 pl-2">
             <ProjectSwitcher
               projects={projects}
+              activeProjectId={activeProjectId}
               isAdmin={isAdmin && !isImpersonating}
               clientOptions={clientOptions}
             />
           </div>
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            className="flex size-9 items-center justify-center rounded-full bg-brand-primary-soft text-brand-deep ring-1 ring-inset ring-brand-primary/25 outline-none transition-colors hover:bg-[#e2daf7] hover:ring-brand-primary/40 focus-visible:ring-3 focus-visible:ring-ring/40"
-            aria-label="Account menu"
-          >
-            <User className="size-5" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="truncate font-normal text-ink-secondary">
-              {email}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/settings">
-                <Settings className="size-4" />
-                Settings
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-                signOut();
-              }}
+        <div className="flex items-center gap-1">
+          <BugReport activeProjectId={activeProjectId} />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className="flex size-9 items-center justify-center rounded-full bg-brand-primary-soft text-brand-deep ring-1 ring-inset ring-brand-primary/25 outline-none transition-colors hover:bg-[#e2daf7] hover:ring-brand-primary/40 focus-visible:ring-3 focus-visible:ring-ring/40"
+              aria-label="Account menu"
             >
-              <LogOut className="size-4" />
-              Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <User className="size-5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="truncate font-normal text-ink-secondary">
+                {email}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/settings">
+                  <Settings className="size-4" />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  signOut();
+                }}
+              >
+                <LogOut className="size-4" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
 
       <div className="flex flex-1">

@@ -23,20 +23,25 @@ export default async function DocumentsPage() {
   await requireAdmin();
   const supabase = await createClient();
 
-  const { data: docRows } = await supabase
-    .from("documents")
-    .select("*")
-    .eq("scope", "internal")
-    .order("created_at", { ascending: false });
+  // "Internal" documents are those on client-less projects (e.g. Hello Savvy) —
+  // only admins can see them. Client-facing docs live inside their project.
+  const { data: projRows } = await supabase
+    .from("projects")
+    .select("id,name")
+    .is("client_id", null);
+  const internalProjects = (projRows ?? []) as { id: string; name: string }[];
+  const internalIds = internalProjects.map((p) => p.id);
+
+  const { data: docRows } = internalIds.length
+    ? await supabase
+        .from("documents")
+        .select("*")
+        .in("project_id", internalIds)
+        .order("created_at", { ascending: false })
+    : { data: [] };
   const docs = (docRows ?? []) as Document[];
 
-  // Project options for the "Add document" dialog (admin can scope to a project
-  // from here too, though it defaults to internal).
-  const { data: projRows } = await supabase.from("projects").select("id,name");
-  const projectOptions = (projRows ?? []).map((p) => ({
-    id: p.id as string,
-    label: p.name as string,
-  }));
+  const projectOptions = internalProjects.map((p) => ({ id: p.id, label: p.name }));
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -52,7 +57,6 @@ export default async function DocumentsPage() {
         </div>
         <DocumentFormDialog
           projects={projectOptions}
-          defaultScope="internal"
           trigger={<Button>Add document</Button>}
         />
       </div>
