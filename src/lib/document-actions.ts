@@ -62,6 +62,7 @@ export async function createDocument(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/documents");
+  if (projectId) revalidatePath(`/projects/${projectId}`);
 }
 
 export async function deleteDocument(formData: FormData) {
@@ -82,8 +83,10 @@ export async function deleteDocument(formData: FormData) {
   const { error } = await supabase.from("documents").delete().eq("id", id);
   if (error) throw new Error(error.message);
 
-  revalidatePath("/documents");
-  redirect("/documents");
+  // Project docs delete back to their project page; internal docs to /documents.
+  const redirectTo = nullableStr(formData, "redirect_to") ?? "/documents";
+  revalidatePath(redirectTo);
+  redirect(redirectTo);
 }
 
 export async function signOffDocument(formData: FormData) {
@@ -101,5 +104,8 @@ export async function signOffDocument(formData: FormData) {
   });
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/documents/${documentId}`);
+  // The same document is viewable at /documents/[id] (internal) or
+  // /projects/[id]/documents/[docId] (project). Revalidate broadly so the
+  // signed state shows wherever it's viewed.
+  revalidatePath("/", "layout");
 }

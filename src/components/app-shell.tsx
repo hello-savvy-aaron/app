@@ -5,9 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   FileText,
-  FolderKanban,
   LogOut,
   Menu,
+  Newspaper,
   PanelLeft,
   PanelLeftClose,
   Settings,
@@ -15,6 +15,7 @@ import {
   Users,
 } from "lucide-react";
 import { Wordmark } from "@/components/wordmark";
+import { ProjectSwitcher } from "@/components/project-switcher";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -31,12 +32,12 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string }>;
 };
 
-const NAV_ALL: NavItem[] = [
-  { href: "/projects", label: "Projects", icon: FolderKanban },
-  { href: "/documents", label: "Documents", icon: FileText },
-];
+// Clients navigate via the header project switcher; their docs live inside the
+// project. The sidebar is admin-only: internal documents, users, blog studio.
 const NAV_ADMIN: NavItem[] = [
+  { href: "/documents", label: "Documents", icon: FileText },
   { href: "/users", label: "Users", icon: Users },
+  { href: "/blog", label: "Blog Studio", icon: Newspaper },
 ];
 
 type SidebarState = "full" | "icons" | "hidden";
@@ -48,6 +49,8 @@ export function AppShell({
   year,
   isAdmin,
   isImpersonating,
+  projects,
+  clientOptions,
   children,
 }: {
   email: string;
@@ -55,6 +58,8 @@ export function AppShell({
   year: number;
   isAdmin: boolean;
   isImpersonating: boolean;
+  projects: { id: string; name: string }[];
+  clientOptions: { id: string; label: string }[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -114,7 +119,7 @@ export function AppShell({
           )}
         </div>
         <nav className="flex flex-1 flex-col gap-1 px-2 text-sm">
-          {[...NAV_ALL, ...(isAdmin && !isImpersonating ? NAV_ADMIN : [])].map((item) => {
+          {(isAdmin && !isImpersonating ? NAV_ADMIN : []).map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(item.href + "/");
             const Icon = item.icon;
@@ -173,6 +178,13 @@ export function AppShell({
           <span className="md:hidden">
             <Wordmark className="text-base" />
           </span>
+          <div className="ml-1 border-l border-border pl-2">
+            <ProjectSwitcher
+              projects={projects}
+              isAdmin={isAdmin && !isImpersonating}
+              clientOptions={clientOptions}
+            />
+          </div>
         </div>
 
         <DropdownMenu>

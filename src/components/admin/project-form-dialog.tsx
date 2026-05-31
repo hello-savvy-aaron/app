@@ -32,12 +32,19 @@ export function ProjectFormDialog({
   clients,
   project,
   trigger,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: {
   clients: ClientOption[];
   project?: Project;
-  trigger: React.ReactNode;
+  /** Optional — omit when driving the dialog via the controlled `open` prop. */
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = controlledOnOpenChange ?? setUncontrolledOpen;
   const isEdit = Boolean(project);
 
   async function action(formData: FormData) {
@@ -49,7 +56,7 @@ export function ProjectFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent>
         <form action={action}>
           <DialogHeader>

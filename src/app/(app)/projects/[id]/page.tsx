@@ -5,13 +5,25 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
 import { ProjectFormDialog } from "@/components/admin/project-form-dialog";
+import { DocumentFormDialog } from "@/components/admin/document-form-dialog";
 import { TaskItem } from "@/components/admin/task-item";
 import { createTask, deleteProject } from "@/lib/project-actions";
-import type { Client, Project, Task } from "@/lib/types";
+import type { Client, Document, Project, Task } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+const KIND_LABEL: Record<string, string> = { pdf: "PDF", html: "HTML", link: "Link" };
 
 export default async function ProjectDetailPage({
   params,
@@ -39,6 +51,24 @@ export default async function ProjectDetailPage({
     .order("created_at", { ascending: true });
   const tasks = (taskRows ?? []) as Task[];
 
+  // Documents for this project only. RLS already restricts to the user's scope.
+  const { data: docRows } = await supabase
+    .from("documents")
+    .select("*")
+    .eq("project_id", id)
+    .order("created_at", { ascending: false });
+  const docs = (docRows ?? []) as Document[];
+
+  // Users: which docs they've already signed.
+  const signed = new Set<string>();
+  if (!isAdmin) {
+    const { data: so } = await supabase
+      .from("document_signoffs")
+      .select("document_id")
+      .eq("profile_id", profile.id);
+    (so ?? []).forEach((r) => signed.add(r.document_id as string));
+  }
+
   // Admin-only: client list for the label + edit dialog.
   let clients: Client[] = [];
   if (isAdmin) {
@@ -53,14 +83,7 @@ export default async function ProjectDetailPage({
 
   return (
     <div className="mx-auto max-w-3xl">
-      <Link
-        href="/projects"
-        className="text-sm text-ink-secondary hover:underline"
-      >
-        ← Projects
-      </Link>
-
-      <div className="mt-3 mb-6 flex items-start justify-between gap-4">
+      <div className="mb-6 flex items-start justify-between gap-4">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-[-0.02em]">{p.name}</h1>
@@ -141,6 +164,77 @@ export default async function ProjectDetailPage({
                 <StatusBadge status={t.status} />
               </div>
             ))}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-10 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold tracking-[-0.01em]">Documents</h2>
+          {isAdmin && (
+            <DocumentFormDialog
+              projects={[{ id: p.id, label: p.name }]}
+              lockedProject={{ id: p.id, label: p.name }}
+              trigger={<Button>Add document</Button>}
+            />
+          )}
+        </div>
+
+        {docs.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-foreground/15 p-8 text-center text-sm text-ink-secondary">
+            {isAdmin
+              ? "No documents yet. Add the first one for this project."
+              : "No documents yet. Anything we share will appear here."}
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Sign-off</TableHead>
+                  <TableHead className="text-right">Added</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {docs.map((d) => (
+                  <TableRow key={d.id}>
+                    <TableCell className="font-medium">
+                      <Link
+                        href={`/projects/${p.id}/documents/${d.id}`}
+                        className="hover:underline"
+                      >
+                        {d.title}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-ink-secondary">
+                      {KIND_LABEL[d.kind]}
+                    </TableCell>
+                    <TableCell>
+                      {!d.requires_signoff ? (
+                        <span className="text-ink-tertiary">—</span>
+                      ) : isAdmin ? (
+                        <Badge className="border-transparent bg-brand-primary-soft text-brand-deep">
+                          Required
+                        </Badge>
+                      ) : signed.has(d.id) ? (
+                        <Badge className="border-transparent bg-mint-100 text-[#2f6f4f] ring-1 ring-mint-500/30">
+                          Signed
+                        </Badge>
+                      ) : (
+                        <Badge className="border-transparent bg-pink-100 text-pink-500 ring-1 ring-pink-500/30">
+                          Needs sign-off
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right text-ink-secondary">
+                      {new Date(d.created_at).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         )}
       </section>

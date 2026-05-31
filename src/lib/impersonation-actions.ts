@@ -28,7 +28,7 @@ export async function startImpersonation(formData: FormData) {
     path: "/",
     maxAge: 60 * 60, // 1 hour
   });
-  redirect("/projects");
+  redirect("/");
 }
 
 export async function stopImpersonation() {

@@ -17,7 +17,7 @@ import { Wordmark } from "@/components/wordmark";
 
 export function LoginForm() {
   const searchParams = useSearchParams();
-  const next = searchParams.get("redirectTo") ?? "/projects";
+  const next = searchParams.get("redirectTo") ?? "/";
 
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -26,7 +26,7 @@ export function LoginForm() {
 
   const callbackUrl = () => {
     // No query params — Supabase allowlist matches exact paths, not query strings.
-    // After exchange the callback always redirects to /projects.
+    // After exchange the callback always redirects to the landing resolver.
     return new URL("/auth/callback", window.location.origin).toString();
   };
 

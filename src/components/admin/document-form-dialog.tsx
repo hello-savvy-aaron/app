@@ -28,13 +28,20 @@ type ProjectOption = { id: string; label: string };
 export function DocumentFormDialog({
   projects,
   trigger,
+  lockedProject,
+  defaultScope = "project",
 }: {
   projects: ProjectOption[];
   trigger: React.ReactNode;
+  /** When set, the dialog is opened from a project page: scope is forced to
+   *  "project" and pinned to this project (no scope/project pickers shown). */
+  lockedProject?: ProjectOption;
+  /** Initial visibility when not locked to a project. */
+  defaultScope?: "internal" | "project";
 }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<"pdf" | "html" | "link">("pdf");
-  const [scope, setScope] = useState<"internal" | "project">("project");
+  const [scope, setScope] = useState<"internal" | "project">(defaultScope);
   const [error, setError] = useState<string | null>(null);
 
   async function action(formData: FormData) {
@@ -74,7 +81,9 @@ export function DocumentFormDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div
+              className={lockedProject ? "space-y-2" : "grid grid-cols-2 gap-4"}
+            >
               <div className="space-y-2">
                 <Label>Type</Label>
                 <Select name="kind" value={kind} onValueChange={(v) => setKind(v as typeof kind)}>
@@ -88,36 +97,45 @@ export function DocumentFormDialog({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Visibility</Label>
-                <Select name="scope" value={scope} onValueChange={(v) => setScope(v as typeof scope)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="project">Project (client)</SelectItem>
-                    <SelectItem value="internal">Internal (Hello Savvy)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {!lockedProject && (
+                <div className="space-y-2">
+                  <Label>Visibility</Label>
+                  <Select name="scope" value={scope} onValueChange={(v) => setScope(v as typeof scope)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="project">Project (client)</SelectItem>
+                      <SelectItem value="internal">Internal (Hello Savvy)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
-            {scope === "project" && (
-              <div className="space-y-2">
-                <Label>Project</Label>
-                <Select name="project_id">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {lockedProject ? (
+              <>
+                <input type="hidden" name="scope" value="project" />
+                <input type="hidden" name="project_id" value={lockedProject.id} />
+              </>
+            ) : (
+              scope === "project" && (
+                <div className="space-y-2">
+                  <Label>Project</Label>
+                  <Select name="project_id">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projects.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )
             )}
 
             {kind === "link" ? (

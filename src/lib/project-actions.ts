@@ -30,7 +30,8 @@ export async function createProject(formData: FormData) {
   });
   if (error) throw new Error(error.message);
 
-  revalidatePath("/projects");
+  // Refresh the header switcher (lives in the app layout) everywhere.
+  revalidatePath("/", "layout");
 }
 
 export async function updateProject(formData: FormData) {
@@ -51,7 +52,7 @@ export async function updateProject(formData: FormData) {
     .eq("id", id);
   if (error) throw new Error(error.message);
 
-  revalidatePath("/projects");
+  revalidatePath("/", "layout");
   revalidatePath(`/projects/${id}`);
 }
 
@@ -65,8 +66,8 @@ export async function deleteProject(formData: FormData) {
   const { error } = await supabase.from("projects").delete().eq("id", id);
   if (error) throw new Error(error.message);
 
-  revalidatePath("/projects");
-  redirect("/projects");
+  revalidatePath("/", "layout");
+  redirect("/");
 }
 
 export async function createTask(formData: FormData) {

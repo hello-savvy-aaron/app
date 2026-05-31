@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { ProjectStatus, TaskStatus } from "@/lib/types";
+import type { IssueState, ProjectStatus, TaskStatus } from "@/lib/types";
 
 const LABELS: Record<string, string> = {
   active: "Active",
@@ -8,6 +8,8 @@ const LABELS: Record<string, string> = {
   done: "Done",
   todo: "To do",
   in_progress: "In progress",
+  open: "Open",
+  closed: "Closed",
 };
 
 // v0.6 palette: lavender for in-flight, mint for success/done, warm-neutral for
@@ -15,12 +17,18 @@ const LABELS: Record<string, string> = {
 const STYLES: Record<string, string> = {
   active: "bg-brand-primary-soft text-brand-deep",
   in_progress: "bg-brand-primary-soft text-brand-deep",
+  open: "bg-brand-primary-soft text-brand-deep",
   done: "bg-mint-100 text-[#2f6f4f] ring-1 ring-mint-500/30",
+  closed: "bg-mint-100 text-[#2f6f4f] ring-1 ring-mint-500/30",
   paused: "bg-section-tint text-ink-secondary ring-1 ring-foreground/10",
   todo: "bg-transparent text-ink-tertiary ring-1 ring-foreground/15",
 };
 
-export function StatusBadge({ status }: { status: ProjectStatus | TaskStatus }) {
+export function StatusBadge({
+  status,
+}: {
+  status: ProjectStatus | TaskStatus | IssueState;
+}) {
   return (
     <Badge className={cn("border-transparent", STYLES[status] ?? STYLES.todo)}>
       {LABELS[status] ?? status}

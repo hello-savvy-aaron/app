@@ -82,9 +82,9 @@ export async function requireProfile(): Promise<Profile> {
   return profile;
 }
 
-/** Require an admin profile; redirect non-admins to the projects view. */
+/** Require an admin profile; redirect non-admins to their landing page. */
 export async function requireAdmin(): Promise<Profile> {
   const profile = await requireProfile();
-  if (profile.role !== "admin") redirect("/projects");
+  if (profile.role !== "admin") redirect("/");
   return profile;
 }

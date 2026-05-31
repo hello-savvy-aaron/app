@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? searchParams.get("redirectTo") ?? "/projects";
+  const next = searchParams.get("next") ?? searchParams.get("redirectTo") ?? "/";
 
   if (code) {
     const supabase = await createClient();
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       // be created by the handle_new_user trigger on first sign-in, so it will
       // exist by the time the destination page loads.
       const safePath =
-        next.startsWith("/") && !next.startsWith("//") ? next : "/projects";
+        next.startsWith("/") && !next.startsWith("//") ? next : "/";
       return NextResponse.redirect(`${origin}${safePath}`);
     }
   }
