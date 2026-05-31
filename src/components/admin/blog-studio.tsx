@@ -63,11 +63,15 @@ export function BlogStudio() {
     setBusy(true);
     setStatus(null);
     try {
-      const data = await generateBlogDraft({ topic, keywords, tags, wordCount });
-      setTitle(data.title);
-      setSlug(data.slug);
-      setDescription(data.description);
-      setMarkdown(data.markdown);
+      const res = await generateBlogDraft({ topic, keywords, tags, wordCount });
+      if (!res.ok) {
+        setStatus({ type: "error", text: res.error });
+        return;
+      }
+      setTitle(res.data.title);
+      setSlug(res.data.slug);
+      setDescription(res.data.description);
+      setMarkdown(res.data.markdown);
       setHasDraft(true);
       setTab("edit");
     } catch (e) {
@@ -83,7 +87,11 @@ export function BlogStudio() {
     setStatus(null);
     try {
       const res = await publishBlogPost({ slug, title, description, tags, markdown });
-      setStatus({ type: "success", text: `Committed ${res.path}`, url: res.fileUrl });
+      if (!res.ok) {
+        setStatus({ type: "error", text: res.error });
+        return;
+      }
+      setStatus({ type: "success", text: `Committed ${res.data.path}`, url: res.data.fileUrl });
     } catch (e) {
       setStatus({ type: "error", text: e instanceof Error ? e.message : "Publish failed." });
     } finally {

@@ -165,43 +165,35 @@
   }
 }
 
-/* v0.6 §3 — the three canonical gradients. Each has one job; don't invent
-   others, don't use these elsewhere. Saturated CTA + text gradients are
-   "special moments"; the soft gradient is a near-invisible cream→lavender wash. */
-:root {
-  --gradient-cta: linear-gradient(135deg, #5b47e5 0%, #8b5bd4 50%, #d8479a 100%);
-  --gradient-text: linear-gradient(90deg, #5b47e5 0%, #d8479a 100%);
-  --gradient-soft: linear-gradient(180deg, #fbf8f2 0%, #f1ecfb 100%);
-}
-
-/* App chrome surfaces. Un-layered so the wash/border/lift reliably read over
-   Tailwind utilities. The header borrows the soft section gradient (§3) and a
-   diffused lavender lift (§6) — never a hard line — so the bar feels like a
-   crafted object floating over the canvas, not a dashboard rule. */
-.app-header {
-  background-image: linear-gradient(
-    180deg,
-    rgba(251, 248, 242, 0.92) 0%,
-    rgba(241, 236, 251, 0.85) 100%
-  );
-  border-bottom: 1px solid rgba(124, 111, 224, 0.14);
-  box-shadow: 0 6px 22px -16px rgba(91, 71, 229, 0.32);
-}
-@supports (
-  (backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px))
-) {
+/* App chrome surfaces (v0.6). The sticky header borrows the soft section
+   gradient (§3) — a near-invisible cream→lavender wash — plus a diffused
+   lavender lift (§6), never a hard line, so it reads as a crafted object over
+   the canvas rather than a dashboard rule. */
+@layer components {
   .app-header {
     background-image: linear-gradient(
       180deg,
-      rgba(251, 248, 242, 0.78) 0%,
-      rgba(241, 236, 251, 0.68) 100%
+      rgba(251, 248, 242, 0.92) 0%,
+      rgba(241, 236, 251, 0.85) 100%
     );
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(124, 111, 224, 0.14);
+    box-shadow: 0 6px 22px -16px rgba(91, 71, 229, 0.32);
   }
-}
 
-/* Sidebar — faint section-tint→lavender wash for quiet dimension. */
-.app-sidebar {
-  background-image: linear-gradient(180deg, #f5f1e8 0%, #ece5f6 100%);
+  @supports ((backdrop-filter: blur(8px)) or (-webkit-backdrop-filter: blur(8px))) {
+    .app-header {
+      background-image: linear-gradient(
+        180deg,
+        rgba(251, 248, 242, 0.78) 0%,
+        rgba(241, 236, 251, 0.68) 100%
+      );
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+    }
+  }
+
+  /* Sidebar — faint section-tint→lavender wash for quiet dimension. */
+  .app-sidebar {
+    background-image: linear-gradient(180deg, #f5f1e8 0%, #ece5f6 100%);
+  }
 }

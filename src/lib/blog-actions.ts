@@ -57,14 +57,32 @@ export type BlogDraft = {
   markdown: string;
 };
 
+// Actions return a result object rather than throwing for expected failures
+// (missing config, validation, known GitHub errors). Next.js masks thrown
+// server-action error messages in production builds — returning keeps them
+// legible to the admin. Truly unexpected errors are caught and returned too.
+export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
+
 export async function generateBlogDraft(input: {
   topic: string;
   keywords?: string;
   tags?: string;
   wordCount?: number;
-}): Promise<BlogDraft> {
+}): Promise<ActionResult<BlogDraft>> {
   await requireAdmin();
+  try {
+    return { ok: true, data: await generate(input) };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Generation failed." };
+  }
+}
 
+async function generate(input: {
+  topic: string;
+  keywords?: string;
+  tags?: string;
+  wordCount?: number;
+}): Promise<BlogDraft> {
   const topic = input.topic?.trim();
   if (!topic) throw new Error("A topic is required.");
   if (!ANTHROPIC_API_KEY) throw new Error("Claude is not configured on the server.");
@@ -133,18 +151,22 @@ export async function publishBlogPost(input: {
   description?: string;
   tags?: string;
   markdown: string;
-}): Promise<CommitResult> {
+}): Promise<ActionResult<CommitResult>> {
   await requireAdmin();
+  try {
+    const slug = slugify(input.slug || input.title);
+    if (!slug) throw new Error("A title or slug is required.");
+    if (!input.markdown?.trim()) throw new Error("The post body is empty.");
 
-  const slug = slugify(input.slug || input.title);
-  if (!slug) throw new Error("A title or slug is required.");
-  if (!input.markdown?.trim()) throw new Error("The post body is empty.");
-
-  return commitPost({
-    slug,
-    title: input.title?.trim() || slug,
-    description: input.description?.trim() || undefined,
-    tags: parseTags(input.tags),
-    markdown: input.markdown,
-  });
+    const data = await commitPost({
+      slug,
+      title: input.title?.trim() || slug,
+      description: input.description?.trim() || undefined,
+      tags: parseTags(input.tags),
+      markdown: input.markdown,
+    });
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Publish failed." };
+  }
 }

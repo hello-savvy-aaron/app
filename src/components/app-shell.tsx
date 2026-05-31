@@ -14,7 +14,7 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { Wordmark } from "@/components/wordmark";
+import { Monogram } from "@/components/monogram";
 import { Eyebrow } from "@/components/eyebrow";
 import { ProjectSwitcher } from "@/components/project-switcher";
 import { cn } from "@/lib/utils";
@@ -41,7 +41,7 @@ const NAV_ADMIN: NavItem[] = [
   { href: "/blog", label: "Blog Studio", icon: Newspaper },
 ];
 
-type SidebarState = "full" | "icons" | "hidden";
+type SidebarState = "full" | "icons";
 const STORAGE_KEY = "hs-sidebar";
 
 export function AppShell({
@@ -72,7 +72,7 @@ export function AppShell({
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === "full" || saved === "icons" || saved === "hidden") {
+    if (saved === "full" || saved === "icons") {
       setState(saved);
     }
   }, []);
@@ -83,9 +83,9 @@ export function AppShell({
     setMobileOpen(false);
   }, [pathname]);
 
-  // Header toggle cycles full -> icons -> hidden -> full.
-  function cycle() {
-    setState((s) => (s === "full" ? "icons" : s === "icons" ? "hidden" : "full"));
+  // The minimizer lives in the sidebar header and toggles the rail full <-> icons.
+  function toggleSidebar() {
+    setState((s) => (s === "full" ? "icons" : "full"));
   }
 
   function signOut() {
@@ -96,27 +96,41 @@ export function AppShell({
 
   const icons = state === "icons";
 
-  function SidebarInner({ collapsed }: { collapsed: boolean }) {
+  function SidebarInner({
+    collapsed,
+    showToggle,
+  }: {
+    collapsed: boolean;
+    showToggle: boolean;
+  }) {
     return (
       <>
         <div
           className={cn(
-            "flex h-14 items-center px-4",
+            "flex h-14 items-center gap-2 px-3",
             collapsed && "justify-center px-0",
           )}
         >
-          {collapsed ? (
-            <span className="text-lg font-bold tracking-[-0.02em]">
-              <span className="text-display-lavender">H</span>
-              <span className="text-display-magenta">S</span>
-            </span>
+          {showToggle ? (
+            <button
+              onClick={toggleSidebar}
+              className="rounded-full p-2 text-ink-secondary transition-colors hover:bg-brand-primary-soft hover:text-brand-deep"
+              aria-label={collapsed ? "Expand menu" : "Collapse menu"}
+              title={collapsed ? "Expand menu" : "Collapse menu"}
+            >
+              {collapsed ? (
+                <PanelLeft className="size-5" />
+              ) : (
+                <PanelLeftClose className="size-5" />
+              )}
+            </button>
           ) : (
-            <div className="flex min-w-0 flex-col gap-1">
-              <Wordmark className="text-lg" />
-              <Eyebrow className="px-2 py-0 text-[10px] tracking-[0.1em]">
-                {subtitle}
-              </Eyebrow>
-            </div>
+            <Monogram className="size-7" />
+          )}
+          {!collapsed && (
+            <Eyebrow className="px-2 py-0 text-[10px] tracking-[0.1em]">
+              {subtitle}
+            </Eyebrow>
           )}
         </div>
         <nav className="flex flex-1 flex-col gap-1 px-2 text-sm">
@@ -158,27 +172,13 @@ export function AppShell({
           >
             <Menu className="size-5" />
           </button>
-          <button
-            onClick={cycle}
-            className="hidden rounded-full p-2 text-ink-secondary transition-colors hover:bg-brand-primary-soft hover:text-brand-deep md:inline-flex"
-            aria-label="Toggle sidebar"
-            title={
-              state === "full"
-                ? "Collapse to icons"
-                : state === "icons"
-                  ? "Hide sidebar"
-                  : "Show sidebar"
-            }
+          <Link
+            href="/"
+            aria-label="HelloSavvy home"
+            className="shrink-0 rounded-[10px] outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
           >
-            {state === "hidden" ? (
-              <PanelLeft className="size-5" />
-            ) : (
-              <PanelLeftClose className="size-5" />
-            )}
-          </button>
-          <span className="md:hidden">
-            <Wordmark className="text-base" />
-          </span>
+            <Monogram />
+          </Link>
           <div className="ml-1 border-l border-brand-primary/15 pl-2">
             <ProjectSwitcher
               projects={projects}
@@ -224,10 +224,9 @@ export function AppShell({
           className={cn(
             "app-sidebar hidden shrink-0 flex-col border-r border-sidebar-border pb-4 transition-[width] md:flex",
             icons ? "w-16" : "w-60",
-            state === "hidden" && "md:hidden",
           )}
         >
-          <SidebarInner collapsed={icons} />
+          <SidebarInner collapsed={icons} showToggle />
         </aside>
 
         {mobileOpen && (
@@ -237,7 +236,7 @@ export function AppShell({
               onClick={() => setMobileOpen(false)}
             />
             <aside className="app-sidebar absolute top-0 left-0 flex h-full w-60 flex-col border-r border-sidebar-border pb-4 shadow-lg">
-              <SidebarInner collapsed={false} />
+              <SidebarInner collapsed={false} showToggle={false} />
             </aside>
           </div>
         )}
