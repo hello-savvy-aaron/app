@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  CircleDot,
   FileText,
   LogOut,
   Menu,
@@ -39,6 +40,7 @@ type NavItem = {
 // project. The sidebar is admin-only: internal documents, users, blog studio.
 const NAV_ADMIN: NavItem[] = [
   { href: "/documents", label: "Documents", icon: FileText },
+  { href: "/issues", label: "Issues", icon: CircleDot },
   { href: "/users", label: "Users", icon: Users },
   { href: "/blog", label: "Blog Studio", icon: Newspaper },
 ];

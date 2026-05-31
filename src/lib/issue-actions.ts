@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireProfile } from "@/lib/auth";
+import { requireProfile, requireAdmin } from "@/lib/auth";
 import { parseGitHubRepo, createGitHubIssue } from "@/lib/github";
+import type { IssueState } from "@/lib/types";
 
 function str(formData: FormData, key: string): string {
   return (formData.get(key) as string | null)?.trim() ?? "";
@@ -12,6 +13,16 @@ function str(formData: FormData, key: string): string {
 function nullableStr(formData: FormData, key: string): string | null {
   const v = str(formData, key);
   return v === "" ? null : v;
+}
+
+/** Parse an optional integer field; throws on non-numeric input so the admin
+ *  form surfaces the error instead of inserting NaN. */
+function nullableInt(formData: FormData, key: string): number | null {
+  const v = str(formData, key);
+  if (v === "") return null;
+  const n = Number(v);
+  if (!Number.isInteger(n)) throw new Error(`${key} must be a whole number.`);
+  return n;
 }
 
 /** Create an issue on the project's linked GitHub repo and mirror it locally.
@@ -65,4 +76,81 @@ export async function createIssue(formData: FormData) {
   }
 
   revalidatePath(`/projects/${projectId}`);
+}
+
+// ---------------------------------------------------------------------------
+// Admin management of the local `issues` table (the GitHub mirror).
+//
+// Distinct from createIssue above: these operate on the local row directly and
+// do NOT call the GitHub API. They're for the /issues admin screen — backfilling
+// a mirror, correcting a title, flipping state, or pruning a stale row. The
+// github_number/github_url fields are entered by hand. All require admin.
+// ---------------------------------------------------------------------------
+
+/** Admin: insert a local issue row (no GitHub call). */
+export async function createManagedIssue(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const projectId = str(formData, "project_id");
+  const title = str(formData, "title");
+  if (!projectId || !title) return;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { error } = await supabase.from("issues").insert({
+    project_id: projectId,
+    title,
+    body: nullableStr(formData, "body"),
+    github_number: nullableInt(formData, "github_number"),
+    github_url: nullableStr(formData, "github_url"),
+    state: (str(formData, "state") || "open") as IssueState,
+    created_by: user?.id ?? null,
+  });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/issues");
+  revalidatePath(`/projects/${projectId}`);
+}
+
+/** Admin: update a local issue row. */
+export async function updateIssue(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const id = str(formData, "id");
+  const projectId = str(formData, "project_id");
+  if (!id || !projectId) return;
+
+  const { error } = await supabase
+    .from("issues")
+    .update({
+      project_id: projectId,
+      title: str(formData, "title"),
+      body: nullableStr(formData, "body"),
+      github_number: nullableInt(formData, "github_number"),
+      github_url: nullableStr(formData, "github_url"),
+      state: str(formData, "state") as IssueState,
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/issues");
+  revalidatePath(`/projects/${projectId}`);
+}
+
+/** Admin: delete a local issue row. Does not touch the GitHub issue. */
+export async function deleteIssue(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const id = str(formData, "id");
+  if (!id) return;
+
+  const { error } = await supabase.from("issues").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/issues");
 }
