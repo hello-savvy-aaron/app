@@ -46,12 +46,18 @@ export function ProjectFormDialog({
   const open = controlledOpen ?? uncontrolledOpen;
   const setOpen = controlledOnOpenChange ?? setUncontrolledOpen;
   const isEdit = Boolean(project);
+  const [error, setError] = useState<string | null>(null);
 
   async function action(formData: FormData) {
     if (formData.get("client_id") === UNASSIGNED) formData.set("client_id", "");
-    if (isEdit) await updateProject(formData);
-    else await createProject(formData);
-    setOpen(false);
+    setError(null);
+    try {
+      if (isEdit) await updateProject(formData);
+      else await createProject(formData);
+      setOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong.");
+    }
   }
 
   return (
@@ -127,6 +133,21 @@ export function ProjectFormDialog({
                 </Select>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="github_repo_url">GitHub repository</Label>
+              <Input
+                id="github_repo_url"
+                name="github_repo_url"
+                defaultValue={project?.github_repo_url ?? ""}
+                placeholder="https://github.com/owner/repo"
+              />
+              <p className="text-xs text-ink-tertiary">
+                Links this project to a repo so issues can be filed against it.
+              </p>
+            </div>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
 
           <DialogFooter>
