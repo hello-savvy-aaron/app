@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,9 +15,6 @@ import {
 import { Wordmark } from "@/components/wordmark";
 
 export function LoginForm() {
-  const searchParams = useSearchParams();
-  const next = searchParams.get("redirectTo") ?? "/";
-
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);

@@ -77,7 +77,6 @@ export default async function AppLayout({
         <ImpersonationBanner
           asEmail={profile.email}
           asName={profile.full_name}
-          adminEmail={profile._impersonating.adminEmail}
         />
       )}
       <AppShell

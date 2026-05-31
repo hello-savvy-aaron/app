@@ -5,11 +5,9 @@ import { stopImpersonation } from "@/lib/impersonation-actions";
 export function ImpersonationBanner({
   asEmail,
   asName,
-  adminEmail,
 }: {
   asEmail: string;
   asName: string | null;
-  adminEmail: string;
 }) {
   return (
     <div className="flex items-center justify-between gap-4 bg-display-magenta/90 px-4 py-2 text-sm text-white backdrop-blur">

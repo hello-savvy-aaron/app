@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProfile } from "@/lib/auth";
+import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DocumentSignoff } from "@/components/document-signoff";
+import { ShareDocumentButton } from "@/components/share-document-button";
 import { deleteDocument } from "@/lib/document-actions";
+import { KIND_LABEL } from "@/lib/constants";
 import type { Document, DocumentSignoff as Signoff } from "@/lib/types";
-
-const KIND_LABEL: Record<string, string> = { pdf: "PDF", html: "HTML", link: "Link" };
 
 /** Shared document viewer used by both the project-scoped route
  *  (/projects/[id]/documents/[docId]) and the admin internal route
@@ -22,7 +22,7 @@ export async function DocumentViewer({
   backHref: string;
   backLabel: string;
 }) {
-  const profile = (await getProfile())!;
+  const profile = await requireProfile();
   const isAdmin = profile.role === "admin";
   const supabase = await createClient();
 
@@ -71,7 +71,7 @@ export async function DocumentViewer({
   const mySignoff = signoffs.find((s) => s.profile_id === profile.id);
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="w-full">
       <Link href={backHref} className="text-sm text-ink-secondary hover:underline">
         ← {backLabel}
       </Link>
@@ -94,6 +94,7 @@ export async function DocumentViewer({
           )}
         </div>
         <div className="flex shrink-0 gap-2">
+          <ShareDocumentButton />
           {fileUrl && (
             <Button asChild variant="outline">
               <a href={fileUrl} target="_blank" rel="noreferrer">
@@ -155,13 +156,13 @@ export async function DocumentViewer({
           srcDoc={htmlContent}
           title={d.title}
           sandbox="allow-scripts allow-popups allow-same-origin allow-forms"
-          className="h-[80vh] w-full rounded-xl bg-white ring-1 ring-foreground/10"
+          className="h-[calc(100vh-11rem)] min-h-[600px] w-full rounded-xl bg-white ring-1 ring-foreground/10"
         />
       ) : d.kind === "pdf" && fileUrl ? (
         <iframe
           src={fileUrl}
           title={d.title}
-          className="h-[80vh] w-full rounded-xl bg-white ring-1 ring-foreground/10"
+          className="h-[calc(100vh-11rem)] min-h-[600px] w-full rounded-xl bg-white ring-1 ring-foreground/10"
         />
       ) : (
         <p className="text-sm text-ink-secondary">This document can&apos;t be displayed.</p>

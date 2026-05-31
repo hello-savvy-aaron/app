@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { IssueState, ProjectStatus, TaskStatus } from "@/lib/types";
+import type { IssueState, ProjectStatus } from "@/lib/types";
 
 const LABELS: Record<string, string> = {
   active: "Active",
@@ -27,7 +27,7 @@ const STYLES: Record<string, string> = {
 export function StatusBadge({
   status,
 }: {
-  status: ProjectStatus | TaskStatus | IssueState;
+  status: ProjectStatus | IssueState;
 }) {
   return (
     <Badge className={cn("border-transparent", STYLES[status] ?? STYLES.todo)}>

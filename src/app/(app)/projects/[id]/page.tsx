@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProfile } from "@/lib/auth";
+import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -18,14 +16,11 @@ import { StatusBadge } from "@/components/status-badge";
 import { Eyebrow } from "@/components/eyebrow";
 import { ProjectFormDialog } from "@/components/admin/project-form-dialog";
 import { DocumentFormDialog } from "@/components/admin/document-form-dialog";
-import { IssueFormDialog } from "@/components/issue-form-dialog";
-import { TaskItem } from "@/components/admin/task-item";
-import { createTask, deleteProject } from "@/lib/project-actions";
-import type { Client, Document, Issue, Project, Task } from "@/lib/types";
+import { deleteProject } from "@/lib/project-actions";
+import { KIND_LABEL } from "@/lib/constants";
+import type { Client, Document, Project } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-
-const KIND_LABEL: Record<string, string> = { pdf: "PDF", html: "HTML", link: "Link" };
 
 export default async function ProjectDetailPage({
   params,
@@ -33,7 +28,7 @@ export default async function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const profile = (await getProfile())!;
+  const profile = await requireProfile();
   const isAdmin = profile.role === "admin";
   const supabase = await createClient();
 
@@ -45,20 +40,6 @@ export default async function ProjectDetailPage({
     .single();
   if (!project) notFound();
   const p = project as Project;
-
-  const { data: taskRows } = await supabase
-    .from("tasks")
-    .select("*")
-    .eq("project_id", id)
-    .order("created_at", { ascending: true });
-  const tasks = (taskRows ?? []) as Task[];
-
-  const { data: issueRows } = await supabase
-    .from("issues")
-    .select("*")
-    .eq("project_id", id)
-    .order("created_at", { ascending: false });
-  const issues = (issueRows ?? []) as Issue[];
 
   // Documents for this project only. RLS already restricts to the user's scope.
   const { data: docRows } = await supabase
@@ -126,128 +107,6 @@ export default async function ProjectDetailPage({
       </div>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-bold tracking-[-0.01em]">Tasks</h2>
-
-        {isAdmin && (
-          <form
-            action={createTask}
-            className="flex flex-wrap items-end gap-2 rounded-xl bg-section-tint p-3"
-          >
-            <input type="hidden" name="project_id" value={p.id} />
-            <div className="flex-1 space-y-1">
-              <Label htmlFor="title" className="text-xs">
-                New task
-              </Label>
-              <Input id="title" name="title" required placeholder="Task title" />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="due_date" className="text-xs">
-                Due
-              </Label>
-              <Input id="due_date" name="due_date" type="date" />
-            </div>
-            <Button type="submit">Add</Button>
-          </form>
-        )}
-
-        {tasks.length === 0 ? (
-          <p className="text-sm text-ink-secondary">No tasks yet.</p>
-        ) : isAdmin ? (
-          <div className="space-y-2">
-            {tasks.map((t) => (
-              <TaskItem key={t.id} task={t} />
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {tasks.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center gap-3 rounded-xl bg-card px-3 py-2 ring-1 ring-foreground/10"
-              >
-                <span className="flex-1 text-sm">{t.title}</span>
-                {t.due_date && (
-                  <span className="text-xs text-ink-tertiary">
-                    due {new Date(t.due_date).toLocaleDateString()}
-                  </span>
-                )}
-                <StatusBadge status={t.status} />
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="mt-10 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold tracking-[-0.01em]">Issues</h2>
-          {p.github_repo_url ? (
-            <IssueFormDialog
-              projectId={p.id}
-              trigger={<Button>New issue</Button>}
-            />
-          ) : (
-            isAdmin && (
-              <span className="text-xs text-ink-tertiary">
-                Link a GitHub repo in Edit to enable issues.
-              </span>
-            )
-          )}
-        </div>
-
-        {issues.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-foreground/15 p-8 text-center text-sm text-ink-secondary">
-            {p.github_repo_url
-              ? "No issues yet. File the first one and it’ll be created on GitHub."
-              : "No issues yet."}
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Issue</TableHead>
-                  <TableHead>State</TableHead>
-                  <TableHead className="text-right">Created</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {issues.map((i) => (
-                  <TableRow key={i.id}>
-                    <TableCell className="font-medium">
-                      {i.github_url ? (
-                        <a
-                          href={i.github_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="hover:underline"
-                        >
-                          {i.title}
-                          {i.github_number != null && (
-                            <span className="ml-1 text-ink-tertiary">
-                              #{i.github_number}
-                            </span>
-                          )}
-                        </a>
-                      ) : (
-                        i.title
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={i.state} />
-                    </TableCell>
-                    <TableCell className="text-right text-ink-secondary">
-                      {new Date(i.created_at).toLocaleDateString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </section>
-
-      <section className="mt-10 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold tracking-[-0.01em]">Documents</h2>
           {isAdmin && (

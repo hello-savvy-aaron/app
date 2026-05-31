@@ -4,15 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, requireProfile } from "@/lib/auth";
+import { str, nullableStr } from "@/lib/form";
 import type { DocumentKind } from "@/lib/types";
-
-function str(fd: FormData, k: string): string {
-  return (fd.get(k) as string | null)?.trim() ?? "";
-}
-function nullableStr(fd: FormData, k: string): string | null {
-  const v = str(fd, k);
-  return v === "" ? null : v;
-}
 
 export async function createDocument(formData: FormData) {
   await requireAdmin();

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/eyebrow";
 import { StatusBadge } from "@/components/status-badge";
 import { IssueAdminDialog } from "@/components/admin/issue-admin-dialog";
+import { IssueStateCheckbox } from "@/components/admin/issue-state-checkbox";
 import {
   Table,
   TableBody,
@@ -68,6 +69,9 @@ export default async function IssuesPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-px">
+                  <span className="sr-only">Close</span>
+                </TableHead>
                 <TableHead>Issue</TableHead>
                 <TableHead>Project</TableHead>
                 <TableHead>State</TableHead>
@@ -77,7 +81,10 @@ export default async function IssuesPage() {
             </TableHeader>
             <TableBody>
               {issues.map((i) => (
-                <TableRow key={i.id}>
+                <TableRow key={i.id} data-state={i.state}>
+                  <TableCell className="w-px align-middle">
+                    <IssueStateCheckbox issue={i} />
+                  </TableCell>
                   <TableCell className="font-medium">
                     {i.github_url ? (
                       <a

@@ -1,7 +1,6 @@
 export type Role = "admin" | "user";
 
 export type ProjectStatus = "active" | "paused" | "done";
-export type TaskStatus = "todo" | "in_progress" | "done";
 export type IssueState = "open" | "closed";
 
 export type Profile = {
@@ -28,15 +27,6 @@ export type Project = {
   status: ProjectStatus;
   client_id: string | null;
   github_repo_url: string | null;
-  created_at: string;
-};
-
-export type Task = {
-  id: string;
-  project_id: string;
-  title: string;
-  status: TaskStatus;
-  due_date: string | null;
   created_at: string;
 };
 

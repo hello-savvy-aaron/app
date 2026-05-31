@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Check, ChevronsUpDown, FolderKanban, Plus } from "lucide-react";
@@ -50,9 +50,13 @@ export function ProjectSwitcher({
   // navigation (the layout prop is stale after soft nav). Seed from the prop so
   // SSR and the first client paint agree (no hydration mismatch).
   const [cookieId, setCookieId] = useState<string | null>(activeProjectId);
-  useEffect(() => {
+  // Re-read the cookie on navigation via the "store previous value" pattern
+  // (during render, not an effect). SSR/first paint keep the prop seed above.
+  const [lastPathname, setLastPathname] = useState(pathname);
+  if (pathname !== lastPathname) {
+    setLastPathname(pathname);
     setCookieId(readActiveProject());
-  }, [pathname]);
+  }
   const urlId = pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? null;
   const activeId = urlId ?? cookieId;
   const active = projects.find((p) => p.id === activeId);

@@ -5,16 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { parseGitHubRepo } from "@/lib/github";
-import type { ProjectStatus, TaskStatus } from "@/lib/types";
-
-function str(formData: FormData, key: string): string {
-  return (formData.get(key) as string | null)?.trim() ?? "";
-}
-
-function nullableStr(formData: FormData, key: string): string | null {
-  const v = str(formData, key);
-  return v === "" ? null : v;
-}
+import { str, nullableStr } from "@/lib/form";
+import type { ProjectStatus } from "@/lib/types";
 
 export async function createProject(formData: FormData) {
   await requireAdmin();
@@ -85,52 +77,4 @@ export async function deleteProject(formData: FormData) {
 
   revalidatePath("/", "layout");
   redirect("/");
-}
-
-export async function createTask(formData: FormData) {
-  await requireAdmin();
-  const supabase = await createClient();
-
-  const projectId = str(formData, "project_id");
-  const title = str(formData, "title");
-  if (!projectId || !title) return;
-
-  const { error } = await supabase.from("tasks").insert({
-    project_id: projectId,
-    title,
-    status: (str(formData, "status") || "todo") as TaskStatus,
-    due_date: nullableStr(formData, "due_date"),
-  });
-  if (error) throw new Error(error.message);
-
-  revalidatePath(`/projects/${projectId}`);
-}
-
-export async function setTaskStatus(formData: FormData) {
-  await requireAdmin();
-  const supabase = await createClient();
-
-  const id = str(formData, "id");
-  const projectId = str(formData, "project_id");
-  const status = str(formData, "status") as TaskStatus;
-  if (!id) return;
-
-  const { error } = await supabase.from("tasks").update({ status }).eq("id", id);
-  if (error) throw new Error(error.message);
-
-  revalidatePath(`/projects/${projectId}`);
-}
-
-export async function deleteTask(formData: FormData) {
-  await requireAdmin();
-  const supabase = await createClient();
-
-  const id = str(formData, "id");
-  const projectId = str(formData, "project_id");
-  if (!id) return;
-
-  const { error } = await supabase.from("tasks").delete().eq("id", id);
-  if (error) throw new Error(error.message);
-
-  revalidatePath(`/projects/${projectId}`);
 }

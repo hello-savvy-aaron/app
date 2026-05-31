@@ -39,14 +39,14 @@ export default async function UsersPage() {
         <p className="text-sm text-ink-secondary">
           {users.length} user{users.length === 1 ? "" : "s"} ·{" "}
           <span className="text-ink-tertiary">
-            Click "View as" to see the app exactly as that user sees it.
+            Click &ldquo;View as&rdquo; to see the app exactly as that user sees it.
           </span>
         </p>
       </div>
 
       {users.length === 0 ? (
         <div className="rounded-xl border border-dashed border-foreground/15 p-10 text-center text-sm text-ink-secondary">
-          No users yet. They'll appear here once someone signs up.
+          No users yet. They&rsquo;ll appear here once someone signs up.
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">

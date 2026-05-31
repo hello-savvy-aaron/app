@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -47,6 +47,109 @@ const NAV_ADMIN: NavItem[] = [
 
 type SidebarState = "full" | "icons";
 const STORAGE_KEY = "hs-sidebar";
+// Same-tab notifier — the native `storage` event only fires in *other* tabs.
+const SIDEBAR_EVENT = "hs-sidebar-change";
+
+// localStorage-backed store for the rail's collapsed state, read through
+// useSyncExternalStore so the persisted value hydrates without a setState-in-
+// effect (server renders the "full" default, the client swaps in the saved one).
+function readSidebarState(): SidebarState {
+  if (typeof window === "undefined") return "full";
+  return localStorage.getItem(STORAGE_KEY) === "icons" ? "icons" : "full";
+}
+
+function getServerSidebarState(): SidebarState {
+  return "full";
+}
+
+function subscribeSidebar(onChange: () => void): () => void {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(SIDEBAR_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(SIDEBAR_EVENT, onChange);
+  };
+}
+
+function writeSidebarState(next: SidebarState): void {
+  localStorage.setItem(STORAGE_KEY, next);
+  window.dispatchEvent(new Event(SIDEBAR_EVENT));
+}
+
+function SidebarInner({
+  collapsed,
+  showToggle,
+  subtitle,
+  isAdmin,
+  isImpersonating,
+  pathname,
+  onToggle,
+}: {
+  collapsed: boolean;
+  showToggle: boolean;
+  subtitle: string;
+  isAdmin: boolean;
+  isImpersonating: boolean;
+  pathname: string;
+  onToggle: () => void;
+}) {
+  return (
+    <>
+      <div
+        className={cn(
+          "flex h-14 items-center gap-2 px-3",
+          collapsed && "justify-center px-0",
+        )}
+      >
+        {showToggle ? (
+          <button
+            onClick={onToggle}
+            className="rounded-full p-2 text-ink-secondary transition-colors hover:bg-brand-primary-soft hover:text-brand-deep"
+            aria-label={collapsed ? "Expand menu" : "Collapse menu"}
+            title={collapsed ? "Expand menu" : "Collapse menu"}
+          >
+            {collapsed ? (
+              <PanelLeft className="size-5" />
+            ) : (
+              <PanelLeftClose className="size-5" />
+            )}
+          </button>
+        ) : (
+          <Monogram className="size-7" />
+        )}
+        {!collapsed && (
+          <Eyebrow className="px-2 py-0 text-[10px] tracking-[0.1em]">
+            {subtitle}
+          </Eyebrow>
+        )}
+      </div>
+      <nav className="flex flex-1 flex-col gap-1 px-2 text-sm">
+        {(isAdmin && !isImpersonating ? NAV_ADMIN : []).map((item) => {
+          const active =
+            pathname === item.href || pathname.startsWith(item.href + "/");
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              title={collapsed ? item.label : undefined}
+              className={cn(
+                "flex items-center gap-3 rounded-full px-3 py-2 font-medium transition-colors",
+                collapsed && "justify-center px-0",
+                active
+                  ? "bg-brand-primary-soft text-brand-deep"
+                  : "text-ink-secondary hover:bg-brand-primary-soft hover:text-brand-deep",
+              )}
+            >
+              <Icon className="size-4 shrink-0" />
+              {!collapsed && <span>{item.label}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+    </>
+  );
+}
 
 export function AppShell({
   email,
@@ -71,27 +174,24 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [state, setState] = useState<SidebarState>("full");
+  const state = useSyncExternalStore(
+    subscribeSidebar,
+    readSidebarState,
+    getServerSidebarState,
+  );
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === "full" || saved === "icons") {
-      setState(saved);
-    }
-  }, []);
-  useEffect(() => {
-    if (mounted) localStorage.setItem(STORAGE_KEY, state);
-  }, [state, mounted]);
-  useEffect(() => {
+  // Close the mobile drawer whenever the route changes. Done during render via
+  // the "store previous value" pattern rather than an effect.
+  const [lastPathname, setLastPathname] = useState(pathname);
+  if (pathname !== lastPathname) {
+    setLastPathname(pathname);
     setMobileOpen(false);
-  }, [pathname]);
+  }
 
   // The minimizer lives in the sidebar header and toggles the rail full <-> icons.
   function toggleSidebar() {
-    setState((s) => (s === "full" ? "icons" : "full"));
+    writeSidebarState(state === "full" ? "icons" : "full");
   }
 
   function signOut() {
@@ -101,71 +201,6 @@ export function AppShell({
   }
 
   const icons = state === "icons";
-
-  function SidebarInner({
-    collapsed,
-    showToggle,
-  }: {
-    collapsed: boolean;
-    showToggle: boolean;
-  }) {
-    return (
-      <>
-        <div
-          className={cn(
-            "flex h-14 items-center gap-2 px-3",
-            collapsed && "justify-center px-0",
-          )}
-        >
-          {showToggle ? (
-            <button
-              onClick={toggleSidebar}
-              className="rounded-full p-2 text-ink-secondary transition-colors hover:bg-brand-primary-soft hover:text-brand-deep"
-              aria-label={collapsed ? "Expand menu" : "Collapse menu"}
-              title={collapsed ? "Expand menu" : "Collapse menu"}
-            >
-              {collapsed ? (
-                <PanelLeft className="size-5" />
-              ) : (
-                <PanelLeftClose className="size-5" />
-              )}
-            </button>
-          ) : (
-            <Monogram className="size-7" />
-          )}
-          {!collapsed && (
-            <Eyebrow className="px-2 py-0 text-[10px] tracking-[0.1em]">
-              {subtitle}
-            </Eyebrow>
-          )}
-        </div>
-        <nav className="flex flex-1 flex-col gap-1 px-2 text-sm">
-          {(isAdmin && !isImpersonating ? NAV_ADMIN : []).map((item) => {
-            const active =
-              pathname === item.href || pathname.startsWith(item.href + "/");
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={collapsed ? item.label : undefined}
-                className={cn(
-                  "flex items-center gap-3 rounded-full px-3 py-2 font-medium transition-colors",
-                  collapsed && "justify-center px-0",
-                  active
-                    ? "bg-brand-primary-soft text-brand-deep"
-                    : "text-ink-secondary hover:bg-brand-primary-soft hover:text-brand-deep",
-                )}
-              >
-                <Icon className="size-4 shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
-              </Link>
-            );
-          })}
-        </nav>
-      </>
-    );
-  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -237,7 +272,15 @@ export function AppShell({
             icons ? "w-16" : "w-60",
           )}
         >
-          <SidebarInner collapsed={icons} showToggle />
+          <SidebarInner
+            collapsed={icons}
+            showToggle
+            subtitle={subtitle}
+            isAdmin={isAdmin}
+            isImpersonating={isImpersonating}
+            pathname={pathname}
+            onToggle={toggleSidebar}
+          />
         </aside>
 
         {mobileOpen && (
@@ -247,7 +290,15 @@ export function AppShell({
               onClick={() => setMobileOpen(false)}
             />
             <aside className="app-sidebar absolute top-0 left-0 flex h-full w-60 flex-col border-r border-sidebar-border pb-4 shadow-lg">
-              <SidebarInner collapsed={false} showToggle={false} />
+              <SidebarInner
+                collapsed={false}
+                showToggle={false}
+                subtitle={subtitle}
+                isAdmin={isAdmin}
+                isImpersonating={isImpersonating}
+                pathname={pathname}
+                onToggle={toggleSidebar}
+              />
             </aside>
           </div>
         )}

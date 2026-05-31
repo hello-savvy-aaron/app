@@ -2,7 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { ACTIVE_PROJECT_COOKIE } from "@/lib/constants";
+import { ACTIVE_PROJECT_COOKIE, KIND_LABEL } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/eyebrow";
 import {
@@ -17,8 +17,6 @@ import { DocumentFormDialog } from "@/components/admin/document-form-dialog";
 import type { Document } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-
-const KIND_LABEL: Record<string, string> = { pdf: "PDF", html: "HTML", link: "Link" };
 
 type ScopedProject = { id: string; name: string; client_id: string | null };
 

@@ -4,26 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile, requireAdmin } from "@/lib/auth";
 import { parseGitHubRepo, createGitHubIssue } from "@/lib/github";
+import { str, nullableStr, nullableInt } from "@/lib/form";
 import type { IssueState } from "@/lib/types";
-
-function str(formData: FormData, key: string): string {
-  return (formData.get(key) as string | null)?.trim() ?? "";
-}
-
-function nullableStr(formData: FormData, key: string): string | null {
-  const v = str(formData, key);
-  return v === "" ? null : v;
-}
-
-/** Parse an optional integer field; throws on non-numeric input so the admin
- *  form surfaces the error instead of inserting NaN. */
-function nullableInt(formData: FormData, key: string): number | null {
-  const v = str(formData, key);
-  if (v === "") return null;
-  const n = Number(v);
-  if (!Number.isInteger(n)) throw new Error(`${key} must be a whole number.`);
-  return n;
-}
 
 /** Create an issue on the project's linked GitHub repo and mirror it locally.
  *  Open to any signed-in user with access to the project (clients + admins);
@@ -139,6 +121,24 @@ export async function updateIssue(formData: FormData) {
 
   revalidatePath("/issues");
   revalidatePath(`/projects/${projectId}`);
+}
+
+/** Admin: flip a single issue's state (open/closed) without touching the rest
+ *  of the row or the GitHub issue. Backs the checkbox on the issues list. */
+export async function setIssueState(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const id = str(formData, "id");
+  const projectId = str(formData, "project_id");
+  const state = str(formData, "state") as IssueState;
+  if (!id) return;
+
+  const { error } = await supabase.from("issues").update({ state }).eq("id", id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/issues");
+  if (projectId) revalidatePath(`/projects/${projectId}`);
 }
 
 /** Admin: delete a local issue row. Does not touch the GitHub issue. */
