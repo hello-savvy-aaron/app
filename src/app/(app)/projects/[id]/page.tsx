@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
 import { Eyebrow } from "@/components/eyebrow";
+import { ProjectTabs } from "@/components/project-tabs";
 import { ProjectFormDialog } from "@/components/admin/project-form-dialog";
 import { DocumentFormDialog } from "@/components/admin/document-form-dialog";
 import { deleteProject } from "@/lib/project-actions";
@@ -105,6 +106,12 @@ export default async function ProjectDetailPage({
           </div>
         )}
       </div>
+
+      {isAdmin && (
+        <div className="mb-6">
+          <ProjectTabs projectId={p.id} active="overview" />
+        </div>
+      )}
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">

@@ -4,12 +4,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { commitPost, type CommitResult } from "@/lib/blog-repo";
+import { resolveAnthropicKey, resolveGithub } from "@/lib/integrations/resolve";
 
 // Blog Studio — generates Haka Construction blog posts with Claude, saves each
 // to the blog_posts table (always tied to a project), and commits them as
-// markdown to a GitHub repo. Admin-only; secrets stay server-side.
-
-const { ANTHROPIC_API_KEY } = process.env;
+// markdown to a GitHub repo. Admin-only; secrets stay server-side. Claude and
+// GitHub credentials resolve per project (integration → global env var).
 
 // Brand context for Haka, kept here so generation stays on-voice.
 const HAKA_CONTEXT = `
@@ -104,13 +104,14 @@ export async function generateBlogDraft(input: {
 
     const topic = input.topic?.trim();
     if (!topic) throw new Error("A topic is required.");
-    if (!ANTHROPIC_API_KEY) throw new Error("Claude is not configured on the server.");
+    const apiKey = await resolveAnthropicKey(supabase, project.id);
+    if (!apiKey) throw new Error("Claude is not configured on the server.");
 
     const keywords = input.keywords?.trim() ?? "";
     const tags = input.tags?.trim() ?? "";
     const wordCount = input.wordCount && input.wordCount > 0 ? input.wordCount : 700;
 
-    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const anthropic = new Anthropic({ apiKey });
     const userPrompt = `
 Write a complete blog post.
 
@@ -208,7 +209,8 @@ export async function publishBlogPost(input: {
     const title = input.title?.trim() || slug;
     const description = input.description?.trim() || undefined;
 
-    const data = await commitPost({ slug, title, description, tags, markdown: input.markdown });
+    const github = await resolveGithub(supabase, project.id);
+    const data = await commitPost(github, { slug, title, description, tags, markdown: input.markdown });
 
     // Persist the edited fields + publish state back to the row.
     const { error } = await supabase

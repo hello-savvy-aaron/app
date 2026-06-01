@@ -9,9 +9,8 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { TOOLS, type ToolContext, type ToolProject } from "@/lib/agents/tools";
+import { getIntegration, resolveAnthropicKey } from "@/lib/integrations/resolve";
 import type { Agent, RunStatus, TranscriptEntry } from "@/lib/types";
-
-const { ANTHROPIC_API_KEY } = process.env;
 
 export type RunOutcome = {
   runId: string;
@@ -58,7 +57,9 @@ export async function runAgent(args: {
   let error: string | null = null;
 
   try {
-    if (!ANTHROPIC_API_KEY) {
+    // Resolve the project's own Claude key (falls back to the global env var).
+    const apiKey = await resolveAnthropicKey(supabase, agent.project_id);
+    if (!apiKey) {
       throw new Error("Claude is not configured on the server.");
     }
 
@@ -72,8 +73,18 @@ export async function runAgent(args: {
       input_schema: t.input_schema,
     }));
 
-    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
-    const ctx: ToolContext = { supabase, project, profileId };
+    const anthropic = new Anthropic({ apiKey });
+
+    // Per-project GitHub creds for the GitHub tools: token (integration → env)
+    // and an optional repo override from the integration's config.
+    const gh = await getIntegration(supabase, agent.project_id, "github");
+    const ghToken = (gh ? await gh.secret("token") : null) ?? process.env.GITHUB_TOKEN;
+    const ctx: ToolContext = {
+      supabase,
+      project,
+      profileId,
+      github: { token: ghToken ?? undefined, repo: gh?.config.repo },
+    };
     const messages: Anthropic.MessageParam[] = [{ role: "user", content: input }];
 
     let finished = false;

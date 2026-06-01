@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile, requireAdmin } from "@/lib/auth";
 import { parseGitHubRepo, createGitHubIssue } from "@/lib/github";
+import { resolveGithub } from "@/lib/integrations/resolve";
 import { str, nullableStr, nullableInt } from "@/lib/form";
 import type { IssueState } from "@/lib/types";
 
@@ -33,7 +34,10 @@ export async function createIssue(formData: FormData) {
   }
 
   const body = nullableStr(formData, "body");
-  const issue = await createGitHubIssue(repo, { title, body });
+  // Prefer the project's own GitHub token (admins); falls back to the global env
+  // token (incl. for client users, who can't see the integration row via RLS).
+  const { token } = await resolveGithub(supabase, projectId);
+  const issue = await createGitHubIssue(repo, { title, body }, token);
 
   // created_by must equal auth.uid() to satisfy the "user creates own" policy.
   const {

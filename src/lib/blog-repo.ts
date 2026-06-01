@@ -3,29 +3,31 @@ import "server-only";
 // GitHub read/write helpers for Blog Studio. Plain server-only module (not a
 // "use server" action boundary) so it can be imported by both the server-side
 // page (for listing) and the blog-actions server actions (for committing).
-// Auth/admin gating lives in blog-actions.ts, which wraps these.
+// Auth/admin gating lives in blog-actions.ts, which wraps these. The caller
+// resolves the GitHub config per project (project integration → env) and passes
+// it in, so each project can publish to its own repo with its own token.
 
-const {
-  GITHUB_TOKEN,
-  GITHUB_REPO,
-  GITHUB_BRANCH = "main",
-  GITHUB_POSTS_DIR = "content/blog",
-} = process.env;
+export type GithubConfig = {
+  token?: string;
+  repo?: string;
+  branch: string;
+  postsDir: string;
+};
 
-export function isGithubConfigured(): boolean {
-  return Boolean(GITHUB_TOKEN && GITHUB_REPO);
+export function isGithubConfigured(cfg: GithubConfig): boolean {
+  return Boolean(cfg.token && cfg.repo);
 }
 
-function ghHeaders(): Record<string, string> {
+function ghHeaders(token: string): Record<string, string> {
   return {
-    Authorization: `Bearer ${GITHUB_TOKEN}`,
+    Authorization: `Bearer ${token}`,
     Accept: "application/vnd.github+json",
     "User-Agent": "hellosavvy-blog-studio",
   };
 }
 
-function contentsUrl(path: string): string {
-  return `https://api.github.com/repos/${GITHUB_REPO}/contents/${path
+function contentsUrl(repo: string, path: string): string {
+  return `https://api.github.com/repos/${repo}/contents/${path
     .split("/")
     .map(encodeURIComponent)
     .join("/")}`;
@@ -50,11 +52,11 @@ function parsePost(file: { name: string; path: string; html_url: string }): Repo
   return { name: file.name, path: file.path, htmlUrl: file.html_url, date, title };
 }
 
-export async function listBlogPosts(): Promise<RepoPost[]> {
-  if (!isGithubConfigured()) return [];
+export async function listBlogPosts(cfg: GithubConfig): Promise<RepoPost[]> {
+  if (!isGithubConfigured(cfg)) return [];
 
-  const url = `${contentsUrl(GITHUB_POSTS_DIR)}?ref=${encodeURIComponent(GITHUB_BRANCH)}`;
-  const res = await fetch(url, { headers: ghHeaders(), cache: "no-store" });
+  const url = `${contentsUrl(cfg.repo!, cfg.postsDir)}?ref=${encodeURIComponent(cfg.branch)}`;
+  const res = await fetch(url, { headers: ghHeaders(cfg.token!), cache: "no-store" });
 
   // The posts directory may not exist yet — that's not an error, just no posts.
   if (res.status === 404) return [];
@@ -95,29 +97,32 @@ export type CommitResult = {
   fileUrl?: string;
 };
 
-export async function commitPost(input: {
-  slug: string;
-  title: string;
-  description?: string;
-  tags?: string[];
-  markdown: string;
-}): Promise<CommitResult> {
-  if (!isGithubConfigured()) {
+export async function commitPost(
+  cfg: GithubConfig,
+  input: {
+    slug: string;
+    title: string;
+    description?: string;
+    tags?: string[];
+    markdown: string;
+  },
+): Promise<CommitResult> {
+  if (!isGithubConfigured(cfg)) {
     throw new Error("GitHub is not configured on the server.");
   }
 
   const date = new Date().toISOString().slice(0, 10);
-  const path = `${GITHUB_POSTS_DIR}/${date}-${input.slug}.md`;
+  const path = `${cfg.postsDir}/${date}-${input.slug}.md`;
   const fileBody =
     buildFrontMatter({ title: input.title || input.slug, date, description: input.description, tags: input.tags }) +
     input.markdown.trim() +
     "\n";
 
-  const url = contentsUrl(path);
+  const url = contentsUrl(cfg.repo!, path);
 
   // Guard against overwriting an existing file (same slug + date).
-  const existing = await fetch(`${url}?ref=${encodeURIComponent(GITHUB_BRANCH)}`, {
-    headers: ghHeaders(),
+  const existing = await fetch(`${url}?ref=${encodeURIComponent(cfg.branch)}`, {
+    headers: ghHeaders(cfg.token!),
     cache: "no-store",
   });
   if (existing.status === 200) {
@@ -126,11 +131,11 @@ export async function commitPost(input: {
 
   const commit = await fetch(url, {
     method: "PUT",
-    headers: { ...ghHeaders(), "Content-Type": "application/json" },
+    headers: { ...ghHeaders(cfg.token!), "Content-Type": "application/json" },
     body: JSON.stringify({
       message: `blog: add "${input.title || input.slug}"`,
       content: Buffer.from(fileBody, "utf8").toString("base64"),
-      branch: GITHUB_BRANCH,
+      branch: cfg.branch,
     }),
   });
 

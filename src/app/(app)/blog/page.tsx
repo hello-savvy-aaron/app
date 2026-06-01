@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Eyebrow } from "@/components/eyebrow";
 import { BlogStudio } from "@/components/admin/blog-studio";
 import { listBlogPosts, isGithubConfigured } from "@/lib/blog-repo";
+import { resolveGithub } from "@/lib/integrations/resolve";
 import { ACTIVE_PROJECT_COOKIE } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
@@ -28,13 +29,19 @@ export default async function BlogPage() {
     activeProject = (data as { id: string; name: string } | null) ?? null;
   }
 
+  // Resolve GitHub config for the active project (integration → env fallback).
+  const github = await resolveGithub(supabase, activeProject?.id ?? null);
+  const githubReady = isGithubConfigured(github);
+
   // Best-effort: a GitHub hiccup shouldn't take down the generator.
   let posts: Awaited<ReturnType<typeof listBlogPosts>> = [];
   let postsError: string | null = null;
-  try {
-    posts = await listBlogPosts();
-  } catch (e) {
-    postsError = e instanceof Error ? e.message : "Could not load posts.";
+  if (githubReady) {
+    try {
+      posts = await listBlogPosts(github);
+    } catch (e) {
+      postsError = e instanceof Error ? e.message : "Could not load posts.";
+    }
   }
 
   return (
@@ -54,7 +61,7 @@ export default async function BlogPage() {
           Published posts
         </h2>
 
-        {!isGithubConfigured() ? (
+        {!githubReady ? (
           <p className="text-sm text-ink-tertiary">
             GitHub isn&apos;t configured, so existing posts can&apos;t be listed.
           </p>

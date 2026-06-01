@@ -120,3 +120,21 @@ export type ToolCatalogItem = {
   description: string;
   mutating: boolean;
 };
+
+// ---------------------------------------------------------------------------
+// Project integrations — admin-managed, per-project external credentials
+// (migration 0009). Non-secret config lives in `config`; secret values live in
+// Supabase Vault, referenced from project_integration_secrets, never here.
+// ---------------------------------------------------------------------------
+
+export type ProjectIntegration = {
+  id: string;
+  project_id: string;
+  provider: string;
+  label: string | null;
+  config: Record<string, string>;
+  enabled: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};

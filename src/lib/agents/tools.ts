@@ -8,10 +8,8 @@ import "server-only";
 
 import type Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { parseGitHubRepo, createGitHubIssue } from "@/lib/github";
+import { parseGitHubRepo, createGitHubIssue, type GitHubRepo } from "@/lib/github";
 import type { ToolCatalogItem } from "@/lib/types";
-
-const { GITHUB_TOKEN } = process.env;
 
 export type ToolProject = {
   id: string;
@@ -25,6 +23,10 @@ export type ToolContext = {
   supabase: SupabaseClient;
   project: ToolProject;
   profileId: string;
+  // Per-project GitHub creds resolved by the runner: token (integration → env)
+  // and an optional repo override (integration config). Repo otherwise comes
+  // from the project's linked github_repo_url.
+  github?: { token?: string; repo?: string };
 };
 
 export type AgentTool = {
@@ -51,24 +53,27 @@ function str(input: Record<string, unknown>, key: string): string {
   return typeof v === "string" ? v.trim() : "";
 }
 
-function ghHeaders(): Record<string, string> {
+function ghHeaders(token: string): Record<string, string> {
   return {
-    Authorization: `Bearer ${GITHUB_TOKEN}`,
+    Authorization: `Bearer ${token}`,
     Accept: "application/vnd.github+json",
     "User-Agent": "hellosavvy-agents",
     "X-GitHub-Api-Version": "2022-11-28",
   };
 }
 
-function requireRepo(ctx: ToolContext) {
-  const repo = parseGitHubRepo(ctx.project.github_repo_url);
+// Resolve the repo (integration override → project link) and token (integration
+// → env, resolved upstream into ctx.github) for a GitHub tool call.
+function requireGithub(ctx: ToolContext): { repo: GitHubRepo; token: string } {
+  const repo = parseGitHubRepo(ctx.github?.repo ?? ctx.project.github_repo_url);
   if (!repo) {
     throw new Error("This project isn't linked to a GitHub repository.");
   }
-  if (!GITHUB_TOKEN) {
-    throw new Error("GitHub is not configured on the server.");
+  const token = ctx.github?.token;
+  if (!token) {
+    throw new Error("GitHub is not configured for this project.");
   }
-  return repo;
+  return { repo, token };
 }
 
 function contentsUrl(repo: { owner: string; repo: string }, path: string): string {
@@ -169,10 +174,10 @@ export const TOOLS: Record<string, AgentTool> = {
       },
     },
     execute: async (input, ctx) => {
-      const repo = requireRepo(ctx);
+      const { repo, token } = requireGithub(ctx);
       const path = str(input, "path");
       const r = await fetch(contentsUrl(repo, path), {
-        headers: ghHeaders(),
+        headers: ghHeaders(token),
         cache: "no-store",
       });
       if (r.status === 404) return `Path not found: ${path || "(root)"}`;
@@ -202,11 +207,11 @@ export const TOOLS: Record<string, AgentTool> = {
       required: ["path"],
     },
     execute: async (input, ctx) => {
-      const repo = requireRepo(ctx);
+      const { repo, token } = requireGithub(ctx);
       const path = str(input, "path");
       if (!path) throw new Error("A file path is required.");
       const r = await fetch(contentsUrl(repo, path), {
-        headers: ghHeaders(),
+        headers: ghHeaders(token),
         cache: "no-store",
       });
       if (r.status === 404) return `File not found: ${path}`;
@@ -270,11 +275,11 @@ export const TOOLS: Record<string, AgentTool> = {
       required: ["title"],
     },
     execute: async (input, ctx) => {
-      const repo = requireRepo(ctx);
+      const { repo, token } = requireGithub(ctx);
       const title = str(input, "title");
       if (!title) throw new Error("An issue title is required.");
       const body = str(input, "body") || null;
-      const issue = await createGitHubIssue(repo, { title, body });
+      const issue = await createGitHubIssue(repo, { title, body }, token);
       const { error } = await ctx.supabase.from("issues").insert({
         project_id: ctx.project.id,
         title,

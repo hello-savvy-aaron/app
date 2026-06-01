@@ -1,9 +1,8 @@
-// Server-side GitHub helpers. The PAT (GITHUB_TOKEN) is shared across the app
-// and stays server-side; to file issues it must have "Issues: Read and write"
-// on every repo linked to a project. Talks to the REST API directly (no SDK),
+// Server-side GitHub helpers. A PAT stays server-side; to file issues it must
+// have "Issues: Read and write" on the target repo. Callers pass a per-project
+// token (resolved from the project's GitHub integration) and fall back to the
+// global GITHUB_TOKEN when none is set. Talks to the REST API directly (no SDK),
 // the same approach as the Blog Studio publisher in blog-actions.ts.
-
-const { GITHUB_TOKEN } = process.env;
 
 export type GitHubRepo = { owner: string; repo: string };
 
@@ -39,8 +38,10 @@ export type CreatedIssue = { number: number; htmlUrl: string };
 export async function createGitHubIssue(
   { owner, repo }: GitHubRepo,
   { title, body }: { title: string; body?: string | null },
+  token?: string,
 ): Promise<CreatedIssue> {
-  if (!GITHUB_TOKEN) {
+  const ghToken = token ?? process.env.GITHUB_TOKEN;
+  if (!ghToken) {
     throw new Error("GitHub is not configured on the server.");
   }
 
@@ -49,7 +50,7 @@ export async function createGitHubIssue(
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        Authorization: `Bearer ${ghToken}`,
         Accept: "application/vnd.github+json",
         "Content-Type": "application/json",
         "User-Agent": "hellosavvy-app",
