@@ -34,5 +34,5 @@ export async function startImpersonation(formData: FormData) {
 export async function stopImpersonation() {
   const cookieStore = await cookies();
   cookieStore.delete(IMPERSONATE_COOKIE);
-  redirect("/users");
+  redirect("/settings/users");
 }

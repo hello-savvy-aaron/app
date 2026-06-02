@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ArrowLeft,
   Bot,
   CircleDot,
   FileText,
@@ -35,17 +36,34 @@ type NavItem = {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  // Match the route exactly rather than as a path prefix. Used for section
+  // index pages (e.g. /settings) that share a prefix with their children.
+  exact?: boolean;
 };
 
 // Clients navigate via the header project switcher; their docs live inside the
-// project. The sidebar is admin-only: internal documents, users, blog studio.
+// project. The sidebar is admin-only: internal documents, blog studio, agents.
 const NAV_ADMIN: NavItem[] = [
   { href: "/documents", label: "Documents", icon: FileText },
   { href: "/issues", label: "Issues", icon: CircleDot },
-  { href: "/users", label: "Users", icon: Users },
   { href: "/blog", label: "Blog Studio", icon: Newspaper },
   { href: "/agents", label: "Agents", icon: Bot },
 ];
+
+// Settings has its own nav. Admins entering Settings (via the account menu)
+// swap the main rail for this one; Users now lives here. "Back to app" returns
+// to the main admin nav.
+const NAV_SETTINGS: NavItem[] = [
+  { href: "/settings", label: "Account", icon: User, exact: true },
+  { href: "/settings/users", label: "Users", icon: Users },
+];
+
+const SETTINGS_PREFIX = "/settings";
+
+function isNavActive(item: NavItem, pathname: string): boolean {
+  if (item.exact) return pathname === item.href;
+  return pathname === item.href || pathname.startsWith(item.href + "/");
+}
 
 type SidebarState = "full" | "icons";
 const STORAGE_KEY = "hs-sidebar";
@@ -95,6 +113,14 @@ function SidebarInner({
   pathname: string;
   onToggle: () => void;
 }) {
+  const adminNav = isAdmin && !isImpersonating;
+  const inSettings =
+    pathname === SETTINGS_PREFIX || pathname.startsWith(SETTINGS_PREFIX + "/");
+  const settingsMode = adminNav && inSettings;
+  // Settings swaps the rail; outside it, admins get the main nav.
+  const items = adminNav ? (inSettings ? NAV_SETTINGS : NAV_ADMIN) : [];
+  const sectionLabel = settingsMode ? "Settings" : subtitle;
+
   return (
     <>
       <div
@@ -121,14 +147,26 @@ function SidebarInner({
         )}
         {!collapsed && (
           <Eyebrow className="px-2 py-0 text-[10px] tracking-[0.1em]">
-            {subtitle}
+            {sectionLabel}
           </Eyebrow>
         )}
       </div>
       <nav className="flex flex-1 flex-col gap-1 px-2 text-sm">
-        {(isAdmin && !isImpersonating ? NAV_ADMIN : []).map((item) => {
-          const active =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+        {settingsMode && (
+          <Link
+            href="/documents"
+            title={collapsed ? "Back to app" : undefined}
+            className={cn(
+              "mb-1 flex items-center gap-3 rounded-full px-3 py-2 font-medium text-ink-secondary transition-colors hover:bg-brand-primary-soft hover:text-brand-deep",
+              collapsed && "justify-center px-0",
+            )}
+          >
+            <ArrowLeft className="size-4 shrink-0" />
+            {!collapsed && <span>Back to app</span>}
+          </Link>
+        )}
+        {items.map((item) => {
+          const active = isNavActive(item, pathname);
           const Icon = item.icon;
           return (
             <Link
