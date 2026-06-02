@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DocumentSignoff } from "@/components/document-signoff";
+import { DocumentReviseBox } from "@/components/document-revise-box";
 import { ShareDocumentButton } from "@/components/share-document-button";
 import { deleteDocument } from "@/lib/document-actions";
 import { KIND_LABEL } from "@/lib/constants";
@@ -83,6 +84,11 @@ export async function DocumentViewer({
             <Badge className="border-transparent bg-section-tint text-ink-secondary">
               {KIND_LABEL[d.kind]}
             </Badge>
+            {d.internal && (
+              <Badge className="border-transparent bg-brand-primary-soft text-brand-deep">
+                Internal
+              </Badge>
+            )}
           </div>
           {d.description && (
             <p className="text-sm text-ink-secondary">{d.description}</p>
@@ -141,6 +147,13 @@ export async function DocumentViewer({
           ) : (
             <DocumentSignoff documentId={d.id} />
           )}
+        </div>
+      )}
+
+      {/* Admin-only: revise the document with AI, saved in place. */}
+      {isAdmin && (
+        <div className="mb-6">
+          <DocumentReviseBox documentId={d.id} kind={d.kind} />
         </div>
       )}
 

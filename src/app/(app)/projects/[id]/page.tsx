@@ -137,6 +137,7 @@ export default async function ProjectDetailPage({
               <TableHeader>
                 <TableRow>
                   <TableHead>Title</TableHead>
+                  {isAdmin && <TableHead>Project</TableHead>}
                   <TableHead>Type</TableHead>
                   <TableHead>Sign-off</TableHead>
                   <TableHead className="text-right">Added</TableHead>
@@ -152,7 +153,15 @@ export default async function ProjectDetailPage({
                       >
                         {d.title}
                       </Link>
+                      {d.internal && (
+                        <Badge className="ml-2 border-transparent bg-section-tint text-ink-secondary">
+                          Internal
+                        </Badge>
+                      )}
                     </TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-ink-secondary">{p.name}</TableCell>
+                    )}
                     <TableCell className="text-ink-secondary">
                       {KIND_LABEL[d.kind]}
                     </TableCell>

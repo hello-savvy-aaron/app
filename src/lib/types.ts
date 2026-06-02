@@ -53,6 +53,8 @@ export type Document = {
   storage_path: string | null;
   external_url: string | null;
   requires_signoff: boolean;
+  // Admin-only document: hidden from the project's client (migration 0010).
+  internal: boolean;
   created_by: string | null;
   created_at: string;
 };

@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ACTIVE_PROJECT_COOKIE, KIND_LABEL } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Eyebrow } from "@/components/eyebrow";
 import {
   Table,
@@ -122,6 +123,11 @@ export default async function DocumentsPage() {
                     <Link href={`/documents/${d.id}`} className="hover:underline">
                       {d.title}
                     </Link>
+                    {!isInternal && d.internal && (
+                      <Badge className="ml-2 border-transparent bg-section-tint text-ink-secondary">
+                        Internal
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-ink-secondary">
                     {KIND_LABEL[d.kind]}
